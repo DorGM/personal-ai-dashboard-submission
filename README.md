@@ -12,7 +12,33 @@ app says so instead of guessing.
 A **Demo Mode** with an entirely synthetic 30-day dataset runs with no Google account and no
 OpenAI key.
 
-The `main` branch is the integrated MVP release (commit `32d849a`).
+| Submission material | Link |
+|---|---|
+| Technical report (PDF, 16 pages) | [`Personal-AI-Dashboard-Technical-Report.pdf`](docs/submission/report/Personal-AI-Dashboard-Technical-Report.pdf) |
+| Demo video (4 min 42 s, Demo Mode without an OpenAI key) | [`Personal-AI-Dashboard-Demo.mp4`](https://github.com/DorGM/personal-ai-dashboard-submission/releases/download/submission-v1/Personal-AI-Dashboard-Demo.mp4) on release [`submission-v1`](https://github.com/DorGM/personal-ai-dashboard-submission/releases/tag/submission-v1) |
+| Method: Claude Code Architect, Coder and independent Verifier agents | [`CLAUDE.md`](CLAUDE.md), [`.claude/agents/`](.claude/agents/), report §4 |
+| Development record and task state (sanitized) | [`DEVELOPMENT_LOG.md`](DEVELOPMENT_LOG.md), [`PROJECT_PLAN.md`](PROJECT_PLAN.md) |
+| Verification evidence and defects found | [`docs/submission/evidence-index.md`](docs/submission/evidence-index.md) |
+| Curated prompts and iterations (Appendix B) | [`docs/submission/prompts/`](docs/submission/prompts/README.md) |
+
+**Try it in three commands** (Python 3.12, no Google account, no API key; Windows commands in
+[Demo Mode](#demo-mode-no-google-account-no-openai-key-no-env)):
+```bash
+git clone https://github.com/DorGM/personal-ai-dashboard-submission.git && cd personal-ai-dashboard-submission
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+APP_MODE=demo .venv/bin/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000
+```
+Then open http://localhost:8000 and choose **Explore demo data**.
+
+**AI validation status.** The Analyst's tools, Evidence Validation, repair-then-degrade logic,
+user isolation and demo isolation are tested end to end with a *scripted* model that drives the
+real backend. No live OpenAI call has been made, and the offline golden question set has not been
+run, so real-model answer quality, latency and cost are not measured (report §6.3). With your own
+key the Analyst runs on the synthetic data; without one it shows a fixed "not available" message.
+
+This repository is a single-commit public snapshot of the integrated MVP release (commit
+`32d849a` in the private development repository, whose history is preserved unchanged), followed
+by documentation commits.
 
 ## Architecture
 ```
@@ -44,8 +70,8 @@ Browser ──HTML forms / HTMX──▶ FastAPI (server-rendered Jinja template
   [`docs/submission/report/Personal-AI-Dashboard-Technical-Report.pdf`](docs/submission/report/Personal-AI-Dashboard-Technical-Report.pdf).
 
 ## Requirements
-- Python 3.12 (recommended). `pyproject.toml` allows 3.11 or newer, but 3.11 has not been
-  tested.
+- Python 3.12 (recommended). `pyproject.toml` allows 3.11 or newer; 3.11 was run once, on a
+  Windows clean clone before the line-ending and test fixes (report Appendix C).
 - Git. Windows 10/11 with PowerShell 5.1+ (scripts provided), or macOS / Linux with a POSIX shell.
 - Optional: your own OpenAI API key (Analyst); a Google Cloud OAuth client (personal mode);
   [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
@@ -226,8 +252,8 @@ tools, validator and scripted-model agent tests.
 ## Implementation status
 | Area | Status |
 |---|---|
-| Foundation, configuration, schema, migrations, data preservation (B-01, B-02, B-03) | Integrated and verified |
-| Google sign-in, allowlist, session, CSRF (F-01) | Integrated and verified against a simulated Google |
+| Foundation, configuration, schema, migrations, data preservation (B-01, B-03, F-01) | Integrated and verified |
+| Google sign-in, allowlist, session, CSRF (B-02) | Integrated and verified against a simulated Google |
 | Records, manual edit, soft delete / restore / permanent delete, history (B-04) | Integrated and verified |
 | Demo Mode with synthetic fixture (B-14) | Integrated and verified; dataset pending owner approval |
 | Metrics and aggregates, dashboard charts (B-05, B-07) | Integrated and verified |
@@ -252,7 +278,7 @@ Not run:
 - the offline golden evaluation set;
 - a real Google sign-in;
 - the Cloudflare tunnel;
-- Python 3.11;
+- the full suite on Python 3.11 after the fixes;
 - a Windows clean clone after the `.gitattributes` line-ending fix.
 
 ## Known limitations
