@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "macros.html" import record_form, record_item, view_toggle with context %}
+{% block content %}
+<h2 class="page-title">{{ title }}</h2>
+{{ view_toggle(tab, "history") }}
+{% for s in sections %}
+{% set v = s.view %}
+<section class="domain" id="{{ v.domain }}" aria-labelledby="{{ v.domain }}-heading">
+  <div class="domain-head">
+    <h3 id="{{ v.domain }}-heading">{{ v.title }}</h3>
+  </div>
+  <details class="add">
+    <summary>Add {{ v.singular }}</summary>
+    {{ record_form(v, "/records/" ~ v.domain, "add-" ~ v.domain, values, today, "Save") }}
+  </details>
+  {% if s.notice %}<p class="notice" role="status">{{ s.notice }}</p>{% endif %}
+
+  {% if v.domain == "job_applications" %}
+  <h4>Open applications</h4>
+  {% if s.open_items %}
+  <ul class="records">{% for row in s.open_items %}{{ record_item(v, row) }}{% endfor %}</ul>
+  {% else %}<p class="muted">No open applications.</p>{% endif %}
+  <h4>History</h4>
+  {% endif %}
+
+  {% if s.history is none %}
+  <p class="empty">No {{ v.title|lower }} recorded yet. Use “Add {{ v.singular }}” to add the first one.</p>
+  {% else %}
+  {% set w = s.history.window %}
+  <div class="window" role="group" aria-label="{{ v.title }} date range">
+    {% if s.prev_url %}<a class="button secondary" href="{{ s.prev_url }}">◀ Earlier</a>
+    {% else %}<span class="button secondary disabled" aria-disabled="true">◀ Earlier</span>{% endif %}
+    <span class="range"><span class="visually-hidden">Showing </span>{{ w.start|dmy }} – {{ w.end|dmy }}</span>
+    {% if s.next_url %}<a class="button secondary" href="{{ s.next_url }}">Later ▶</a>
+    {% else %}<span class="button secondary disabled" aria-disabled="true">Later ▶</span>{% endif %}
+    <details class="custom-range">
+      <summary>Choose dates</summary>
+      <form method="get" action="#{{ v.domain }}" class="range-form">
+        {% for k, val in request.query_params.items() %}{% if k not in (v.domain ~ "_start", v.domain ~ "_end") %}
+        <input type="hidden" name="{{ k }}" value="{{ val }}">{% endif %}{% endfor %}
+        <label for="{{ v.domain }}-start">From</label>
+        <input id="{{ v.domain }}-start" type="date" name="{{ v.domain }}_start" value="{{ w.start.isoformat() }}"
+               min="{{ w.lower.isoformat() }}" max="{{ w.upper.isoformat() }}">
+        <label for="{{ v.domain }}-end">To</label>
+        <input id="{{ v.domain }}-end" type="date" name="{{ v.domain }}_end" value="{{ w.end.isoformat() }}"
+               min="{{ w.lower.isoformat() }}" max="{{ w.upper.isoformat() }}">
+        <button type="submit" class="secondary">Show</button>
+        <small class="muted">Up to {{ max_days }} days.</small>
+      </form>
+    </details>
+  </div>
+  <ol class="days">
+    {% for day in s.history.days %}
+    <li class="day">
+      <h4 class="day-date">{{ day.day|dmy }}</h4>
+      {% if v.domain == "meals" and s.totals.get(day.day.isoformat()) %}
+      {% set t = s.totals[day.day.isoformat()] %}
+      <p class="day-total">Day total:
+        {% if t.total_calories is not none %}≈ {{ t.total_calories }} kcal est.{% else %}unknown{% endif %}
+        <span class="muted">({{ t.coverage_status|replace("_", " ") }}, {{ day.day|dmy }})</span></p>
+      {% endif %}
+      {% if day.records %}
+      <ul class="records">{% for row in day.records %}{{ record_item(v, row) }}{% endfor %}</ul>
+      {% else %}
+      <p class="placeholder" lang="he" dir="rtl">לא הוכנס תיעוד עבור יום זה</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

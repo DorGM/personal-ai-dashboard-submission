@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not ai_enabled %}
+<section class="panel">
+  <h2>Analyst</h2>
+  <p class="notice" role="status">
+    {%- if demo_mode -%}
+    AI-powered analysis is not available in the current demo configuration. You can still explore the sample data, metrics, and trends. To enable the analytical agent, configure your own OpenAI API key using the setup instructions.
+    {%- else -%}
+    AI-powered analysis is not configured. Add OPENAI_API_KEY and OPENAI_MODEL to .env (see README) to enable it.
+    {%- endif -%}
+  </p>
+</section>
+{% else %}
+<section class="panel" aria-labelledby="analyst-heading">
+  <h2 id="analyst-heading">Analyst</h2>
+  <p class="muted">Ask a question about your own records. Every number in the answer is computed from your data; the AI only chooses which calculations to run and how to describe them.</p>
+  <form method="post" action="/analyst/ask" class="record-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field field-wide">
+      <label for="analyst-question">Your question</label>
+      <textarea id="analyst-question" name="question" rows="2" maxlength="500" required
+                aria-describedby="analyst-question-hint"></textarea>
+      <small id="analyst-question-hint" class="muted">Up to 500 characters, for example: how did my sleep change over the last month?</small>
+    </div>
+    <div class="form-actions"><button type="submit">Ask</button></div>
+  </form>
+</section>
+<div id="analyst-result" aria-live="polite"></div>
+{% endif %}
+{% endblock %}

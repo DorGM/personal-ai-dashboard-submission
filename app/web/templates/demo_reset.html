@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel danger-panel">
+  <h2>Reset demo data</h2>
+  {% if errors %}<div class="error" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+  <p class="warning" role="note"><strong>Every change you made in this demo is discarded.</strong>
+    The demo is rebuilt from the original synthetic records, with dates shifted to today.
+    You will then choose <em>Explore demo data</em> again. No personal data is involved.</p>
+  <form method="post" action="/demo/reset">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="confirm" value="reset">
+    <div class="form-actions">
+      <button type="submit" class="danger">Reset demo data</button>
+      <a class="button secondary" href="/">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

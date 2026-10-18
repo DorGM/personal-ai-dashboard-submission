@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel{% if action == 'purge' %} danger-panel{% endif %}">
+  <h2>{{ title }}</h2>
+  {% if errors %}<div class="error" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+  <p class="record-preview"><strong>{{ view.singular|capitalize }}:</strong> {{ summary }}
+    <span class="rdate">({{ row[view.date_field]|dmy }})</span></p>
+  {% if action == "purge" %}
+  <p class="warning" role="note"><strong>This can't be undone.</strong> The record
+    {%- if view.domain == "meals" %} and all of its calorie estimates are{% else %} is{% endif %} removed from the
+    database for good. It will not appear in Recently deleted any more.</p>
+  <form method="post" action="/records/{{ view.domain }}/{{ row.id }}/purge">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="confirm" value="permanent">
+    <p class="check">
+      <input id="acknowledge" type="checkbox" name="acknowledge" value="yes" required>
+      <label for="acknowledge">I understand that this record will be deleted permanently.</label>
+    </p>
+    <div class="form-actions">
+      <button type="submit" class="danger">Delete permanently</button>
+      <a class="button secondary" href="/deleted">Cancel</a>
+    </div>
+  </form>
+  {% else %}
+  <p>The record moves to <a href="/deleted">Recently deleted</a> and disappears from your history.
+    You can restore it from there, or delete it permanently.</p>
+  <form method="post" action="/records/{{ view.domain }}/{{ row.id }}/delete">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="confirm" value="delete">
+    <div class="form-actions">
+      <button type="submit" class="danger">Delete</button>
+      <a class="button secondary" href="/{{ view.tab }}#{{ view.domain }}">Cancel</a>
+    </div>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

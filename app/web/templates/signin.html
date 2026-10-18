@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card signin">
+  <h2>Sign in</h2>
+  {% if demo_mode %}
+  <p class="muted">This is a demo with synthetic records only. No account is needed.</p>
+  <form method="post" action="/demo/login">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Explore demo data</button>
+  </form>
+  {% else %}
+  <p class="muted">This dashboard is private. Sign in with an approved Google account.</p>
+  {% if google_ready %}
+  <a class="button" href="/login">Sign in with Google</a>
+  {% else %}
+  <p>Google sign-in isn't set up yet. Add the Google OAuth settings to the configuration (see README).</p>
+  {% endif %}
+  {% if test_auth %}
+  <form method="post" action="/auth/test-login" class="test-login">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="test-email">Test sign-in (localhost only)</label>
+    <input id="test-email" name="email" type="email" required autocomplete="off">
+    <button type="submit">Test sign-in</button>
+  </form>
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

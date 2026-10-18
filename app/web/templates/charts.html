@@ -1,0 +1,80 @@
+{# Server-rendered SVG charts (B-07). Geometry and value text come from app/web/aggregates.py;
+   these macros only place them. Each chart is role="img" with an aria-label and a "Show data" table. #}
+
+{% macro data_table(c, first="Day", second="Value") -%}
+<details class="chart-data">
+  <summary>Show data<span class="visually-hidden">: {{ c.title }}</span></summary>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="{{ c.title }} data">
+  <table>
+    <caption class="visually-hidden">{{ c.title }}</caption>
+    <thead><tr><th scope="col">{{ first }}</th><th scope="col">{{ second }}</th></tr></thead>
+    <tbody>{% for r in c.rows %}<tr><th scope="row">{{ r.label }}</th><td>{{ r.value }}</td></tr>{% endfor %}</tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+{% macro line_chart(c) -%}
+<figure class="chart">
+  <figcaption>{{ c.title }} <span class="muted">({{ c.documented }} of {{ c.total }} days recorded; gaps are days without a record)</span></figcaption>
+  {% if c.documented %}
+  <svg class="chart-svg" viewBox="0 0 {{ c.width }} {{ c.height }}" role="img"
+       aria-label="{{ c.title }}: line chart, {{ c.documented }} of {{ c.total }} days recorded. Gaps mark days without a record.">
+    {% for y, text in c.y_labels %}
+    <line class="grid" x1="{{ c.x_labels[0][0] }}" x2="{{ c.x_labels[1][0] }}" y1="{{ y }}" y2="{{ y }}"></line>
+    <text class="axis" x="{{ c.x_labels[0][0] - 4 }}" y="{{ y + 4 }}" text-anchor="end">{{ text }}</text>
+    {% endfor %}
+    {% for pts in c.segments %}<polyline class="line" points="{{ pts }}"></polyline>{% endfor %}
+    {% for x, y in c.dots %}<circle class="dot" cx="{{ x }}" cy="{{ y }}" r="3.5"></circle>{% endfor %}
+    <text class="axis" x="{{ c.x_labels[0][0] }}" y="{{ c.height - 2 }}">{{ c.x_labels[0][1] }}</text>
+    <text class="axis" x="{{ c.x_labels[1][0] }}" y="{{ c.height - 2 }}" text-anchor="end">{{ c.x_labels[1][1] }}</text>
+  </svg>
+  {% else %}
+  <p class="empty">No records in this period.</p>
+  {% endif %}
+  {{ data_table(c) }}
+</figure>
+{%- endmacro %}
+
+{% macro bar_chart(c) -%}
+<figure class="chart">
+  <figcaption>{{ c.title }}</figcaption>
+  {% if c.bars and c.bars|selectattr("value")|list %}
+  <svg class="chart-svg" viewBox="0 0 {{ c.width }} {{ c.height }}" role="img"
+       aria-label="{{ c.title }}: bar chart. {% for b in c.bars %}{{ b.label }} {{ b.display }}{% if not loop.last %}; {% endif %}{% endfor %}.">
+    {% for b in c.bars %}
+    <rect class="bar {{ b.css }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}"></rect>
+    <text class="value" x="{{ b.x + b.w / 2 }}" y="{{ b.y - 4 }}" text-anchor="middle">{{ b.display }}</text>
+    <text class="axis" x="{{ b.x + b.w / 2 }}" y="{{ c.height - 4 }}" text-anchor="middle">{{ b.label }}</text>
+    {% endfor %}
+  </svg>
+  {% else %}
+  <p class="empty">No records in this period.</p>
+  {% endif %}
+  {{ data_table(c, "Group", "Count") }}
+</figure>
+{%- endmacro %}
+
+{% macro compare_chart(c) -%}
+<figure class="chart">
+  <figcaption>{{ c.title }}</figcaption>
+  <svg class="chart-svg" viewBox="0 0 600 {{ 44 * c.items|length + 8 }}" role="img"
+       aria-label="{{ c.title }}. {% for i in c.items %}{{ i.label }}: previous {{ i.previous }}, selected {{ i.current }}, {{ i.verdict }}{% if not loop.last %}; {% endif %}{% endfor %}.">
+    {% for i in c.items %}
+    {% set top = 44 * loop.index0 + 4 %}
+    <text class="axis" x="0" y="{{ top + 14 }}">{{ i.label }}</text>
+    <rect class="bar prev" x="200" y="{{ top + 2 }}" width="{{ i.prev_w * 2.6 }}" height="14"></rect>
+    <text class="value" x="{{ 204 + i.prev_w * 2.6 }}" y="{{ top + 14 }}">{{ i.previous }}</text>
+    <rect class="bar cur" x="200" y="{{ top + 20 }}" width="{{ i.cur_w * 2.6 }}" height="14"></rect>
+    <text class="value" x="{{ 204 + i.cur_w * 2.6 }}" y="{{ top + 32 }}">{{ i.current }}</text>
+    <text class="axis" x="0" y="{{ top + 32 }}">{{ i.verdict }}</text>
+    {% endfor %}
+  </svg>
+  <p class="legend"><span class="key prev"></span> Previous period <span class="key cur"></span> Selected period</p>
+  {{ data_table(c, "Metric", "Values") }}
+</figure>
+{%- endmacro %}
+
+{% macro chart(c) -%}
+{% if c.kind == "line" %}{{ line_chart(c) }}{% elif c.kind == "bar" %}{{ bar_chart(c) }}{% else %}{{ compare_chart(c) }}{% endif %}
+{%- endmacro %}

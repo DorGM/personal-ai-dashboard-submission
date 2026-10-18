@@ -1,0 +1,78 @@
+{# Shared form and record macros (B-04; visual polish in B-07). #}
+
+{% macro field_input(f, prefix, values, view, today) -%}
+{% set id = prefix ~ "-" ~ f.name %}
+{% set value = values.get(f.name, today.isoformat() if f.kind == "date" else "") %}
+<div class="field{% if f.kind == 'textarea' %} field-wide{% endif %}">
+  <label for="{{ id }}">{{ f.label }}{% if not f.required %} <span class="muted">(optional)</span>{% endif %}</label>
+  {% if f.kind == "select" %}
+  <select id="{{ id }}" name="{{ f.name }}"{% if f.required %} required{% endif %}{% if f.hint %} aria-describedby="{{ id }}-hint"{% endif %}>
+    {% if not f.required %}<option value="">—</option>{% endif %}
+    {% for opt in f.options %}
+    <option value="{{ opt }}"{% if value == opt %} selected{% endif %}>{{ opt|replace("_", " ")|capitalize }}</option>
+    {% endfor %}
+  </select>
+  {% elif f.kind == "textarea" %}
+  <textarea id="{{ id }}" name="{{ f.name }}" rows="2"{% if f.required %} required{% endif %}{% if f.hint %} aria-describedby="{{ id }}-hint"{% endif %}>{{ value }}</textarea>
+  {% else %}
+  <input id="{{ id }}" name="{{ f.name }}" type="{{ f.kind }}" value="{{ value }}"
+         {%- if f.required %} required{% endif %}
+         {%- if f.kind == "number" %} inputmode="{{ 'decimal' if '.' in (f.step or '') else 'numeric' }}"{% endif %}
+         {%- if f.step %} step="{{ f.step }}"{% endif %}{% if f.min %} min="{{ f.min }}"{% endif %}
+         {%- if f.max %} max="{{ f.max }}"{% endif %}
+         {%- if f.kind == "date" %} max="{{ date_limit(view, today) }}"{% endif %}
+         {%- if f.hint %} aria-describedby="{{ id }}-hint"{% endif %}>
+  {% endif %}
+  {% if f.hint %}<small id="{{ id }}-hint" class="muted">{{ f.hint }}</small>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro record_form(view, action, prefix, values, today, submit) -%}
+<form method="post" action="{{ action }}" class="record-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% for f in view.fields %}{{ field_input(f, prefix, values, view, today) }}{% endfor %}
+  <div class="form-actions"><button type="submit">{{ submit }}</button></div>
+</form>
+{%- endmacro %}
+
+{% macro calories(row) -%}
+{% if row.estimated_calories is not none -%}
+≈ {{ row.estimated_calories }} kcal est. <span class="muted">({{ row.calorie_basis|replace("_", " ") }})</span>
+{%- else -%}
+<span class="muted">calories unknown</span>
+{%- endif %}
+{%- endmacro %}
+
+{% macro record_item(view, row) -%}
+{% set d = view.domain %}
+{% set open = d == "job_applications" and row.status in ("applied", "interviewing") %}
+<li class="record{% if open %} open{% endif %}{% if d == 'tasks' and row.status == 'completed' %} done{% endif %}">
+  <div class="record-main">
+    {% if d == "tasks" %}<span class="badge cat cat-{{ row.category }}">{{ row.category|capitalize }}</span>{% endif %}
+    {% if open %}<span class="badge open-badge">Open</span>{% endif %}
+    <span class="record-text">{{ view.module.summary(row) }}</span>
+    <span class="rdate">({{ row[view.date_field]|dmy }})</span>
+    {% if d == "meals" %}<span class="kcal">{{ calories(row) }}</span>{% endif %}
+    {% if d == "tasks" and row.status == "completed" %}<span class="badge status-done">Completed</span>{% endif %}
+    {% if d == "articles" and row.url %}<span class="muted url">{{ row.url }}</span>{% endif %}
+  </div>
+  <div class="record-actions">
+    {% if d == "tasks" %}
+    <form method="post" action="/records/tasks/{{ row.id }}/status">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="status" value="{{ 'pending' if row.status == 'completed' else 'completed' }}">
+      <button type="submit" class="secondary">{{ "Mark pending" if row.status == "completed" else "Mark done" }}</button>
+    </form>
+    {% endif %}
+    <a class="button secondary" href="/records/{{ d }}/{{ row.id }}/edit">Edit<span class="visually-hidden"> {{ view.module.summary(row) }}</span></a>
+    <a class="button danger-outline" href="/records/{{ d }}/{{ row.id }}/delete">Delete<span class="visually-hidden"> {{ view.module.summary(row) }}</span></a>
+  </div>
+</li>
+{%- endmacro %}
+
+{% macro view_toggle(tab, current) -%}
+<nav class="view-toggle" aria-label="View">
+  <a href="/{{ tab }}"{% if current == "history" %} aria-current="page"{% endif %}>History</a>
+  <a href="/{{ tab }}?view=aggregates"{% if current == "aggregates" %} aria-current="page"{% endif %}>Aggregates</a>
+</nav>
+{%- endmacro %}

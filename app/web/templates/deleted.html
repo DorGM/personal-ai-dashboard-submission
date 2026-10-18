@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="page-title">Recently deleted</h2>
+<p class="muted">Deleted records stay here until you restore them or delete them permanently. While a record is
+  here, a new record with the same details can't be added.</p>
+{% if items %}
+<ul class="records deleted-list">
+  {% for item in items %}
+  {% set v = views[item.domain] %}
+  <li class="record">
+    <div class="record-main">
+      <span class="badge">{{ v.title }}</span>
+      <span class="record-text">{{ item.summary }}</span>
+      <span class="rdate">({{ item.record_date|dmy }})</span>
+      <span class="muted">deleted {{ item.deleted_at|dmy }}</span>
+    </div>
+    <div class="record-actions">
+      <form method="post" action="/records/{{ item.domain }}/{{ item.row.id }}/restore">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="secondary">Restore<span class="visually-hidden"> {{ item.summary }}</span></button>
+      </form>
+      <a class="button danger-outline" href="/records/{{ item.domain }}/{{ item.row.id }}/purge">Delete permanently…<span class="visually-hidden"> {{ item.summary }}</span></a>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Nothing here. Deleted records appear in this list.</p>
+{% endif %}
+{% endblock %}

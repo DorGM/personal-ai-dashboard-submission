@@ -1,0 +1,91 @@
+{# Answer card (ADR-005 §5). `outcome` is app.web.analyst.Outcome; `outcome.view` is render.AnswerView.
+   Every string is autoescaped; nothing here uses |safe. Record text never reaches this template. #}
+{% import "analytics_macros.html" as am %}
+{% if outcome and outcome.message %}
+<section class="panel">
+  <p class="{{ 'notice' if outcome.kind == 'notice' else 'error' }}" role="{{ 'status' if outcome.kind == 'notice' else 'alert' }}">{{ outcome.message }}</p>
+</section>
+{% elif outcome and outcome.view %}
+{% set v = outcome.view %}
+<article class="card" aria-labelledby="answer-heading">
+  <p class="muted">You asked:</p>
+  <blockquote>{{ v.question }}</blockquote>
+  <h2 id="answer-heading">
+    Answer
+    <span class="badge{% if v.status == 'answered' %} status-done{% endif %}">{{ v.status_label }}</span>
+  </h2>
+  <p class="muted">{{ v.ai_label }}</p>
+
+  {% if v.fallback %}
+  <p>{{ v.fallback.message }}</p>
+  {% if v.fallback.missing %}
+  <h3>What's missing</h3>
+  <ul>{% for line in v.fallback.missing %}<li>{{ line }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% else %}
+  {% if v.summary %}<p>{{ v.summary }}</p>{% endif %}
+
+  {% if v.tiles %}
+  <dl class="records">
+    {% for t in v.tiles %}
+    <div class="record">
+      <dt class="muted">{{ t.label }} · {{ t.detail }}</dt>
+      <dd><strong>{{ t.value }}</strong></dd>
+    </div>
+    {% endfor %}
+  </dl>
+  {% endif %}
+
+  {% if v.findings %}
+  <h3>Findings</h3>
+  <ol class="records">
+    {% for f in v.findings %}
+    <li class="record">
+      <div class="record-main">
+        <p class="record-text">{{ f.text }}</p>
+        {% if f.low_coverage %}<span class="badge">Low coverage</span>{% endif %}
+      </div>
+      {% for line in f.coverage_lines %}<p class="rdate">{{ line }}</p>{% endfor %}
+      {% if f.record_chips %}
+      <ul class="record-main" aria-label="Records">
+        {% for chip in f.record_chips %}<li class="badge">{{ chip }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if f.caveat %}<p class="muted">{{ f.caveat }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+
+  {% for c in v.charts %}{{ am.chart(c) }}{% endfor %}
+
+  {% if v.limitations %}
+  <h3>What's missing</h3>
+  <ul>{% for line in v.limitations %}<li>{{ line }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% endif %}
+
+  <details>
+    <summary>Evidence</summary>
+    {% if v.evidence %}
+    <ul>{% for line in v.evidence %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% else %}
+    <p class="muted">No calculations were run.</p>
+    {% endif %}
+    {% if v.tokens_used is not none %}<p class="muted">Tokens used: {{ v.tokens_used }}</p>{% endif %}
+  </details>
+
+  {% if v.follow_ups %}
+  <h3>Follow-up questions</h3>
+  <div class="form-actions">
+    {% for q in v.follow_ups %}
+    <form method="post" action="/analyst/ask">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="question" value="{{ q }}">
+      <button type="submit" class="secondary">{{ q }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+</article>
+{% endif %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "macros.html" import view_toggle %}
+{% from "charts.html" import chart %}
+{% block content %}
+<h2 class="page-title">{{ title }}</h2>
+{{ view_toggle(tab, "aggregates") }}
+<section class="domain aggregates" aria-labelledby="agg-heading">
+  <h3 id="agg-heading" class="visually-hidden">Aggregates</h3>
+  <div class="range-bar" role="group" aria-label="Date range">
+    {% for n in presets %}
+    <a class="chip" href="/{{ tab }}?view=aggregates&amp;days={{ n }}"{% if sel and sel.preset == n %} aria-current="true"{% endif %}>Last {{ n }} days</a>
+    {% endfor %}
+    <form method="get" action="/{{ tab }}" class="range-form">
+      <input type="hidden" name="view" value="aggregates">
+      <label for="agg-start">From</label>
+      <input id="agg-start" type="date" name="start" value="{{ start_value }}" max="{{ today.isoformat() }}" required>
+      <label for="agg-end">To</label>
+      <input id="agg-end" type="date" name="end" value="{{ end_value }}" max="{{ today.isoformat() }}" required>
+      <button type="submit" class="secondary">Show</button>
+      <small class="muted">Up to {{ max_days }} days, ending today at the latest.</small>
+    </form>
+  </div>
+  {% if error %}
+  <p class="error" role="alert">{{ error }} Showing the last {{ sel.days }} days instead.</p>
+  {% endif %}
+  <p class="range"><span class="visually-hidden">Showing </span>{{ sel.period.start|dmy }} – {{ sel.period.end|dmy }}
+    <span class="muted">({{ sel.days }} days; compared with {{ sel.previous.start|dmy }} – {{ sel.previous.end|dmy }})</span></p>
+
+  <ul class="tiles">
+    {% for t in agg.tiles %}
+    <li class="tile" data-metric="{{ t.metric }}">
+      <h4>{{ t.label }}</h4>
+      <p class="tile-value"><span class="muted">{{ t.headline_kind }}</span> <strong>{{ t.headline }}</strong></p>
+      {% if t.detail %}<p class="tile-detail">{{ t.detail }}</p>{% endif %}
+      <p class="tile-coverage muted">{{ t.coverage }}</p>
+      <p class="tile-latest muted">{{ t.latest }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h4>Compared with the previous {{ sel.days }} days</h4>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Comparison table">
+  <table class="compare">
+    <thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Selected</th><th scope="col">Difference</th></tr></thead>
+    <tbody>
+      {% for c in agg.comparisons %}
+      <tr data-metric="{{ c.metric }}"><th scope="row">{{ c.label }}</th><td>{{ c.previous }}</td><td>{{ c.current }}</td>
+        <td>{% if c.difference %}{{ c.difference }}{% if c.verdict == "no clear change" %} <span class="muted">(no clear change)</span>{% endif %}{% else %}<span class="muted">{{ c.verdict }}</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Averages and rates use recorded days only. Changes smaller than the metric's threshold are shown as "no clear change"; fewer than 3 recorded days in either period means "not enough data".</p>
+
+  <div class="charts">
+    {% for c in agg.charts %}{{ chart(c) }}{% endfor %}
+  </div>
+</section>
+{% endblock %}

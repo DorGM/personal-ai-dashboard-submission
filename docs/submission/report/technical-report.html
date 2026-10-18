@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Personal AI Dashboard — Technical Report</title>
+<meta name="author" content="Dor Meir">
+<meta name="description" content="Technical report: Personal AI Dashboard with evidence-grounded analytics">
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root { --ink:#1b1f24; --muted:#5b6470; --line:#d7dce2; --accent:#1f5f8b; --soft:#eef4f9; --ok:#1e7a46; --warn:#9a6200; --bad:#a3282c; }
+  html { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.45; }
+  body { margin: 0; background: #fff; }
+  h1 { font-size: 22pt; margin: 0 0 6pt; color: var(--accent); line-height: 1.15; }
+  h2 { font-size: 14pt; color: var(--accent); border-bottom: 1.5pt solid var(--accent); padding-bottom: 2pt; margin: 18pt 0 8pt; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 8.6pt; break-inside: auto; }
+  th, td { border: 0.6pt solid var(--line); padding: 3pt 5pt; vertical-align: top; text-align: left; }
+  th { background: var(--soft); font-weight: 600; }
+  tr { break-inside: avoid; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f4f6f8; padding: 0 2pt; border-radius: 2pt; }
+  .cover { height: 245mm; display: flex; flex-direction: column; justify-content: space-between; break-after: page; }
+  .cover .sub { font-size: 13pt; color: var(--muted); margin-bottom: 18pt; }
+  .meta td { border: none; padding: 2pt 8pt 2pt 0; font-size: 9.5pt; }
+  .meta td:first-child { color: var(--muted); width: 38mm; }
+  .box { border: 0.8pt solid var(--line); background: var(--soft); padding: 7pt 9pt; margin: 6pt 0 10pt; border-radius: 3pt; break-inside: avoid; }
+  .box.warn { background: #fff7e8; border-color: #e6c27a; }
+  .tag { display: inline-block; font-size: 7.5pt; font-weight: 700; padding: 0 4pt; border-radius: 2pt; color: #fff; }
+  .t-ok { background: var(--ok); } .t-rev { background: var(--accent); } .t-un { background: var(--warn); } .t-no { background: var(--bad); }
+  figure { margin: 6pt 0 12pt; break-inside: avoid; text-align: center; }
+  figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 3pt; }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+  .toc { columns: 2; column-gap: 14mm; font-size: 9.5pt; }
+  .toc div { break-inside: avoid; margin-bottom: 2pt; }
+  .small { font-size: 8.5pt; color: var(--muted); }
+  .pb { break-before: page; }
+  blockquote { margin: 4pt 0 8pt; padding: 3pt 9pt; border-left: 2.5pt solid var(--accent); color: #333; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+  <div>
+    <p class="small" style="letter-spacing:1pt;text-transform:uppercase">Technical report · final submission</p>
+    <h1>Personal AI Dashboard<br>with Evidence-Grounded Analytics</h1>
+    <p class="sub">Architecture, AI-assisted engineering method, verification evidence and lessons learned</p>
+    <table class="meta">
+      <tr><td>Author</td><td>Dor Meir</td></tr>
+      <tr><td>Report date</td><td>18 October 2026</td></tr>
+      <tr><td>Evidence basis</td><td><code>main</code> at application release <code>32d849a</code> (B-05, B-07, B-13 and B-15 integrated on top of B-14 <code>f06e00d</code>), with the integration Verifier's recorded results</td></tr>
+      <tr><td>Final release SHA</td><td><b><code>32d849a</code></b> (application release on <code>main</code>; later commits change only documentation and two Windows test fixes)</td></tr>
+      <tr><td>Built with</td><td>Claude Code: Architect → Coder → independent Verifier, under an Integration Lead, with explicit Owner approval gates</td></tr>
+    </table>
+  </div>
+  <div class="box">
+    <b>Evidence convention used throughout.</b>
+    <span class="tag t-ok">TESTED</span> a command or browser flow was executed and its result recorded ·
+    <span class="tag t-rev">REVIEWED</span> checked by reading, no automated run ·
+    <span class="tag t-un">DESIGNED</span> approved design, not yet implemented or not yet merged ·
+    <span class="tag t-no">NOT RUN</span> explicitly not exercised.
+    Every number in this report comes from the development record (<code>PROJECT_PLAN.md</code>, <code>DEVELOPMENT_LOG.md</code>, <code>docs/analytics/worker-notes.md</code>, commit messages, or a command run by the submission session and cited in §11). The planning, log and audit files cited here are kept in the private development repository and are not part of this public snapshot.
+  </div>
+  <div>
+    <b>Contents</b>
+    <div class="toc">
+      <div>1. Executive summary</div><div>2. Problem and intended experience</div>
+      <div>3. Initial approach and product adaptation</div><div>4. MVP scope and deferred capabilities</div>
+      <div>5. System architecture</div><div>6. Analytics architecture</div>
+      <div>7. AI-assisted engineering method</div><div>8. Prompts, iterations and decisions</div>
+      <div>9. Defects found by independent verification</div><div>10. Testing strategy</div>
+      <div>11. Verification results</div><div>12. Synthetic dataset and evaluation</div>
+      <div>13. Privacy, security, reproducibility, deployment</div><div>14. Reflection, limitations, future work</div>
+      <div>15. Final implementation status (integration)</div><div>Appendix A. Decision register</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 1 ============ -->
+<h2>1. Executive summary</h2>
+<p>The Personal AI Dashboard is a local, private web application for analyzing one's own life: food and health, content consumption, job applications and tasks. It provides deterministic history, statistics and charts, and an <b>Analyst</b> that answers natural-language questions with answers grounded in the user's records. A runtime OpenAI agent may only call six read-only, user-scoped tools; it never writes SQL and never writes numbers. Every value shown is computed by the backend, and every claim passes a deterministic <b>Evidence Validation</b> layer (rules V1–V14) before display. When the data cannot support an answer, the product says so in a fixed, Owner-specified message.</p>
+<p>A <b>Demo Mode</b> with an entirely synthetic 30-day dataset lets any reviewer install and explore the product with no Google account and no API key.</p>
+<table>
+  <tr><th style="width:32%">Objective</th><th>Outcome at the evidence date</th></tr>
+  <tr><td>Reliable personal record keeping</td><td><span class="tag t-ok">TESTED</span> 11 record domains with manual create / edit / soft delete / restore / confirmed permanent delete; database-enforced uniqueness; data-preservation guards (B-04, F-01).</td></tr>
+  <tr><td>Reproducible reviewer experience</td><td><span class="tag t-ok">TESTED</span> Demo Mode: checksum-locked fixture, fresh working copy, local-only isolation (B-14, Verifier PASS).</td></tr>
+  <tr><td>Grounded AI analytics</td><td><span class="tag t-ok">TESTED</span> Tools, evidence ledger and validator V1–V14 (B-13, Verifier FAIL → FAIL → PASS) and the agent loop with the Analyst UI (B-15), integrated in <code>32d849a</code> and checked by the integration Verifier with a scripted model on the demo data. The offline golden set and live OpenAI runs were not executed.</td></tr>
+  <tr><td>Deterministic dashboard metrics and charts</td><td><span class="tag t-ok">TESTED</span> B-05 metric registry (independent calculator, 119,256 randomized checks with 0 mismatches) and B-07 dashboard (Playwright at 1440×900 and 390×844), integrated in <code>32d849a</code>.</td></tr>
+  <tr><td>Disciplined AI-assisted engineering</td><td><span class="tag t-ok">TESTED</span> Every implementation checkpoint closed by an independent Verifier PASS; 30+ real defects caught before commit (§9).</td></tr>
+</table>
+
+<!-- ============ 2 ============ -->
+<h2>2. Problem definition and intended user experience</h2>
+<p>People who log their sleep, meals, workouts, reading or job search usually end up with scattered records and no trustworthy way to ask "what actually changed?". General chat assistants can produce fluent answers, but they will happily invent numbers, ignore gaps in the data, and imply causation. The product goal is the opposite: <b>a personal analyst that is only allowed to say what the records support</b>.</p>
+<h3>Intended experience</h3>
+<ul>
+  <li><b>Record</b> daily activities quickly through accessible forms on desktop or phone; duplicates are rejected with a clear message.</li>
+  <li><b>Review</b> a 15-day history per domain where an undocumented day shows "No record entered for this day" (in Hebrew in the UI) and is never treated as a zero; every value shows its actual record date.</li>
+  <li><b>See trends</b> in aggregates whose denominators are documented days only (e.g. 7 workouts on 5 documented days = 1.4 per day).</li>
+  <li><b>Ask</b> a free-form question ("Did my sleep improve in the second half of the month?") and get either a validated answer with coverage lines and evidence, a partial answer that names what is missing, or an honest "not enough data".</li>
+</ul>
+<h3>Domain rules that shape everything else</h3>
+<table>
+  <tr><th>Rule</th><th>Why it matters for AI</th></tr>
+  <tr><td>Missing ≠ zero; denominators = documented days</td><td>The agent cannot turn "forgot to log" into "did nothing".</td></tr>
+  <tr><td>Database uniqueness is authoritative; no automatic overwrite</td><td>No model output can ever replace a stored record.</td></tr>
+  <tr><td>All retrieval and arithmetic is fixed, parameterized SQL</td><td>No model-generated SQL; user scoping cannot be bypassed by prompt text.</td></tr>
+</table>
+
+<!-- ============ 3 ============ -->
+<h2>3. Initial architectural approach and iterative product adaptation</h2>
+<p>The project ran in two controlled stages (§7). In <b>Phase A</b> (16 Oct 2026, 13:47–14:23) the Architect proposed one bounded decision at a time and the Owner approved, amended or corrected each: MVP scope (A-01), stack (A-02), schema (A-03), AI sources and auth (A-04), UI and test matrix (A-05), then <b>GATE-A</b> authorized implementation.</p>
+<p>The original scope included <i>external</i> intelligence: a job-recommendation agent and an industry-trend agent using OpenAI web search, triggered by a "Run now" button (max 3/day), plus AI free-text intake with a clarification loop.</p>
+<figure>
+<svg width="680" height="150" viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f5f8b"/></marker></defs>
+  <g font-size="10">
+    <rect x="5" y="20" width="150" height="80" rx="6" fill="#eef4f9" stroke="#1f5f8b"/>
+    <text x="80" y="38" text-anchor="middle" font-weight="700">v0.1 · 16 Oct</text>
+    <text x="80" y="55" text-anchor="middle">Tracking + job &amp; trend</text>
+    <text x="80" y="68" text-anchor="middle">agents (web search)</text>
+    <text x="80" y="81" text-anchor="middle">+ AI free-text intake</text>
+    <line x1="155" y1="60" x2="200" y2="60" stroke="#1f5f8b" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="200" y="20" width="150" height="80" rx="6" fill="#fff" stroke="#9aa5b1"/>
+    <text x="275" y="38" text-anchor="middle" font-weight="700">Foundation · 16–17 Oct</text>
+    <text x="275" y="55" text-anchor="middle">Schema, data-preservation</text>
+    <text x="275" y="68" text-anchor="middle">guards, sign-in, CSRF</text>
+    <text x="275" y="81" text-anchor="middle">(B-01, B-03, F-01, B-02)</text>
+    <line x1="350" y1="60" x2="395" y2="60" stroke="#1f5f8b" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="395" y="20" width="135" height="80" rx="6" fill="#eef4f9" stroke="#1f5f8b"/>
+    <text x="462" y="38" text-anchor="middle" font-weight="700">v0.2 · ADR-005 · 18 Oct</text>
+    <text x="462" y="55" text-anchor="middle">Personal analytics:</text>
+    <text x="462" y="68" text-anchor="middle">grounded agent, Evidence</text>
+    <text x="462" y="81" text-anchor="middle">Validation, Demo Mode</text>
+    <line x1="530" y1="60" x2="545" y2="60" stroke="#1f5f8b" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="545" y="20" width="130" height="80" rx="6" fill="#fff" stroke="#9aa5b1"/>
+    <text x="610" y="38" text-anchor="middle" font-weight="700">LOG-019 · 18 Oct</text>
+    <text x="610" y="55" text-anchor="middle">Free-text intake out</text>
+    <text x="610" y="68" text-anchor="middle">of MVP; 30-day fixture;</text>
+    <text x="610" y="81" text-anchor="middle">parallel workstreams</text>
+    <text x="340" y="130" text-anchor="middle" fill="#5b6470">Each step recorded verbatim; superseded text kept and marked, never deleted.</text>
+  </g>
+</svg>
+<figcaption>Figure 1. Requirements refinement timeline.</figcaption>
+</figure>
+<h3>Adaptation 1 — focus on the user's own data (ADR-005)</h3>
+<p>After the foundation was in place, the Owner issued a directive (recorded verbatim in <code>owner-directive-2026-10-17-personal-ai-analytics.md</code>) to concentrate the product on analyzing the user's own life, activities, habits and trends. The directive states that this is a deliberate conceptual shift and not a token, cost or time decision. External job discovery, recommendations and trend retrieval moved out of the MVP (tables kept, no UI); a single grounded analytics agent, Evidence Validation and Demo Mode moved in. The change was handled as a <b>planning-only session</b>: the Architect wrote ADR-005 with a supersession table and twelve open decisions (O-0…O-12), Main Claude corrected one Architect claim against git history (LOG-016), and nothing was implemented until the Owner approved the decisions (LOG-017).</p>
+<h3>Adaptation 2 — concentrate runtime AI on analytics (LOG-019)</h3>
+<p>The Owner then deferred AI free-text intake (B-06): "Manual data entry from B-04 is sufficient for this submission," so that the product's runtime AI is concentrated on personal analytics and evidence-grounded insights. The same directive set the dataset to about 30 fictional days and introduced a controlled parallel workstream for analytics (§7.3).</p>
+<p>Both adaptations narrowed the surface where an LLM can be wrong, and moved it to the place where the backend can check it.</p>
+
+<!-- ============ 4 ============ -->
+<h2>4. Final MVP scope and intentionally deferred capabilities</h2>
+<table>
+  <tr><th style="width:50%">In the MVP</th><th>Deferred (history and tables kept)</th></tr>
+  <tr><td>
+    <ul>
+      <li>Manual records for 11 domains, soft delete, Recently deleted, restore, confirmed permanent delete</li>
+      <li>15-day history with record dates and undocumented-day placeholders</li>
+      <li>Deterministic aggregates and server-rendered SVG charts (B-05, B-07)</li>
+      <li>Analyst: one function-calling agent, six read-only tools, Evidence Validation (B-13, B-15)</li>
+      <li>Demo Mode with synthetic fixture; Google sign-in for personal mode</li>
+      <li>Responsive desktop and mobile UI (top tabs / bottom bar)</li>
+    </ul></td>
+  <td>
+    <ul>
+      <li>B-06 AI free-text intake, clarification agent, AI calorie estimates</li>
+      <li>B-08 job recommendations; B-09 industry trends; "Run now"; CV profile</li>
+      <li>Scheduler; persisted analysis history; multi-turn analyst conversations</li>
+      <li>Embeddings, vector DB, multi-agent frameworks, LLM-generated SQL (rejected by design)</li>
+      <li>B-11 temporary Cloudflare tunnel check (optional)</li>
+    </ul></td></tr>
+</table>
+
+<!-- ============ 5 ============ -->
+<h2 class="pb">5. System architecture</h2>
+<figure>
+<svg width="680" height="250" viewBox="0 0 680 250" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+  <g font-size="10">
+    <rect x="10" y="95" width="100" height="56" rx="6" fill="#fff" stroke="#5b6470"/>
+    <text x="60" y="118" text-anchor="middle" font-weight="700">Browser</text>
+    <text x="60" y="133" text-anchor="middle">HTML forms, no JS</text>
+    <line x1="110" y1="123" x2="150" y2="123" stroke="#5b6470" marker-end="url(#a2)"/>
+    <rect x="150" y="10" width="370" height="230" rx="8" fill="#f7fafc" stroke="#1f5f8b"/>
+    <text x="335" y="27" text-anchor="middle" font-weight="700" fill="#1f5f8b">FastAPI application (server-rendered Jinja)</text>
+    <rect x="165" y="40" width="165" height="44" rx="4" fill="#eef4f9" stroke="#9aa5b1"/>
+    <text x="247" y="58" text-anchor="middle" font-weight="600">Middleware</text>
+    <text x="247" y="72" text-anchor="middle">local-only (demo) · CSRF · session</text>
+    <rect x="340" y="40" width="165" height="44" rx="4" fill="#eef4f9" stroke="#9aa5b1"/>
+    <text x="422" y="58" text-anchor="middle" font-weight="600">auth.py</text>
+    <text x="422" y="72" text-anchor="middle">Google OIDC · demo identity</text>
+    <rect x="165" y="94" width="165" height="44" rx="4" fill="#eef4f9" stroke="#9aa5b1"/>
+    <text x="247" y="112" text-anchor="middle" font-weight="600">web/ routes + templates</text>
+    <text x="247" y="126" text-anchor="middle">5 tabs · forms · Analyst</text>
+    <rect x="340" y="94" width="165" height="44" rx="4" fill="#eef4f9" stroke="#9aa5b1"/>
+    <text x="422" y="112" text-anchor="middle" font-weight="600">records/ repositories</text>
+    <text x="422" y="126" text-anchor="middle">Pydantic · only write path</text>
+    <rect x="165" y="148" width="165" height="44" rx="4" fill="#fff7e8" stroke="#e6c27a"/>
+    <text x="247" y="166" text-anchor="middle" font-weight="600">analytics/ (B-05, B-13, B-15)</text>
+    <text x="247" y="180" text-anchor="middle">registry · tools · validator</text>
+    <rect x="340" y="148" width="165" height="44" rx="4" fill="#eef4f9" stroke="#9aa5b1"/>
+    <text x="422" y="166" text-anchor="middle" font-weight="600">db.py · guards · deletion</text>
+    <text x="422" y="180" text-anchor="middle">authorizers · migrations</text>
+    <rect x="165" y="200" width="340" height="30" rx="4" fill="#eef4f9" stroke="#9aa5b1"/>
+    <text x="335" y="219" text-anchor="middle">config.py (validated env) · demo.py (fixture, working copy, reset) · urls.py / net.py (SSRF)</text>
+    <rect x="555" y="40" width="115" height="60" rx="6" fill="#fff" stroke="#5b6470"/>
+    <text x="612" y="64" text-anchor="middle" font-weight="700">Google</text>
+    <text x="612" y="79" text-anchor="middle">personal mode only</text>
+    <rect x="555" y="120" width="115" height="50" rx="6" fill="#fff" stroke="#5b6470"/>
+    <text x="612" y="142" text-anchor="middle" font-weight="700">OpenAI API</text>
+    <text x="612" y="156" text-anchor="middle">optional, own key</text>
+    <rect x="555" y="185" width="115" height="50" rx="6" fill="#fff" stroke="#5b6470"/>
+    <text x="612" y="207" text-anchor="middle" font-weight="700">SQLite file</text>
+    <text x="612" y="221" text-anchor="middle">personal or demo copy</text>
+    <line x1="505" y1="62" x2="555" y2="66" stroke="#5b6470" marker-end="url(#a2)"/>
+    <line x1="330" y1="170" x2="555" y2="145" stroke="#5b6470" stroke-dasharray="3,2" marker-end="url(#a2)"/>
+    <line x1="505" y1="180" x2="555" y2="205" stroke="#5b6470" marker-end="url(#a2)"/>
+  </g>
+</svg>
+<figcaption>Figure 2. Component view. Amber = analytics package (partly on a feature branch at the evidence date).</figcaption>
+</figure>
+<table>
+  <tr><th style="width:22%">Concern</th><th>Decision and rationale</th><th style="width:16%">Evidence</th></tr>
+  <tr><td>Stack</td><td>Python FastAPI + Jinja/HTMX + SQLite (A-02 option A, chosen over TypeScript/React and Next.js/Prisma): smallest dependency budget, no JS build step, one process to start and stop.</td><td>LOG-003</td></tr>
+  <tr><td>Data model</td><td>17 STRICT tables + <code>daily_calories</code> view; user-scoped canonical-key UNIQUE constraints; composite FKs; append-only <code>meal_calorie_estimates</code> (an Owner correction, LOG-005).</td><td>B-03, LOG-004/005</td></tr>
+  <tr><td>Data preservation (ADR-004)</td><td>RESTRICT FKs; deletes only through grant-guarded <code>app/deletion.py</code>; <code>REPLACE</code>/<code>UPSERT</code> neutralized by triggers and an authorizer; immutable identity; migration invariants checked before COMMIT; app connections cannot run DDL.</td><td>F-01, LOG-011/012</td></tr>
+  <tr><td>Soft delete</td><td>Migration 002 adds <code>deleted_at</code>; Recently deleted, restore, and a separately confirmed permanent delete (O-1).</td><td>B-04</td></tr>
+  <tr><td>Authentication</td><td>Google OIDC via Authlib (state, nonce, PKCE); allowlist binds the stable <code>google_sub</code>; signed 8 h cookie; CSRF middleware; a test login accepted only from a loopback peer.</td><td>B-02, LOG-013/014</td></tr>
+  <tr><td>Demo Mode</td><td><code>APP_MODE=demo</code>: localhost only, refuses tunnel/https URLs and <code>TEST_AUTH</code>; content-based mode exclusivity (demo marker in SQLite <code>application_id</code>); per-mode cookie and signing key; outermost local-only middleware; fresh working copy from a SHA-256-verified JSON fixture.</td><td>B-14, LOG-020</td></tr>
+  <tr><td>Deployment</td><td>Local process started and stopped by <code>scripts/start.ps1</code> / <code>stop.ps1</code>; optional Cloudflare quick tunnel in personal mode only. No permanently hosted server.</td><td>A-04 D2, B-01</td></tr>
+</table>
+
+<!-- ============ 6 ============ -->
+<h2>6. Analytics architecture</h2>
+<p>The analytics design (ADR-005 §3–§5) separates <b>what the model decides</b> (which tools to call, how to phrase findings) from <b>what the backend guarantees</b> (every number, coverage, direction and caveat).</p>
+<figure>
+<svg width="680" height="200" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f5f8b"/></marker></defs>
+  <g font-size="9.5">
+    <rect x="5" y="70" width="80" height="50" rx="5" fill="#fff" stroke="#5b6470"/><text x="45" y="92" text-anchor="middle" font-weight="700">Question</text><text x="45" y="106" text-anchor="middle">≤ 500 chars</text>
+    <line x1="85" y1="95" x2="110" y2="95" stroke="#1f5f8b" marker-end="url(#a3)"/>
+    <rect x="110" y="60" width="105" height="70" rx="5" fill="#fff7e8" stroke="#e6c27a"/><text x="162" y="82" text-anchor="middle" font-weight="700">OpenAI model</text><text x="162" y="96" text-anchor="middle">function calling</text><text x="162" y="110" text-anchor="middle">≤ 6 turns, ≤ 8 calls</text>
+    <line x1="215" y1="80" x2="245" y2="80" stroke="#1f5f8b" marker-end="url(#a3)"/>
+    <rect x="245" y="40" width="120" height="70" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="305" y="60" text-anchor="middle" font-weight="700">6 read-only tools</text><text x="305" y="74" text-anchor="middle">T1 coverage · T2 summary</text><text x="305" y="87" text-anchor="middle">T3 compare · T4 series</text><text x="305" y="100" text-anchor="middle">T5 relate · T6 list</text>
+    <line x1="305" y1="110" x2="305" y2="140" stroke="#1f5f8b" marker-end="url(#a3)"/>
+    <rect x="245" y="140" width="120" height="50" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="305" y="160" text-anchor="middle" font-weight="700">Metric registry</text><text x="305" y="174" text-anchor="middle">fixed SQL · user_id = ?</text>
+    <line x1="365" y1="75" x2="395" y2="75" stroke="#1f5f8b" marker-end="url(#a3)"/>
+    <rect x="395" y="45" width="100" height="60" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="445" y="66" text-anchor="middle" font-weight="700">Evidence ledger</text><text x="445" y="80" text-anchor="middle">E1…E8 + SHA-256</text><text x="445" y="94" text-anchor="middle">in memory only</text>
+    <path d="M395 95 C 330 135, 260 140, 215 120" stroke="#5b6470" fill="none" stroke-dasharray="3,2" marker-end="url(#a3)"/>
+    <text x="300" y="133" text-anchor="middle" fill="#5b6470" font-size="8.5"></text>
+    <line x1="495" y1="75" x2="520" y2="75" stroke="#1f5f8b" marker-end="url(#a3)"/>
+    <rect x="520" y="35" width="155" height="80" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="597" y="55" text-anchor="middle" font-weight="700">Evidence Validation</text><text x="597" y="69" text-anchor="middle">V1–V14 deterministic</text><text x="597" y="83" text-anchor="middle">1 repair turn, then degrade</text><text x="597" y="97" text-anchor="middle">backend renders numbers</text>
+    <line x1="597" y1="115" x2="597" y2="140" stroke="#1f5f8b" marker-end="url(#a3)"/>
+    <rect x="520" y="140" width="155" height="50" rx="5" fill="#fff" stroke="#5b6470"/><text x="597" y="160" text-anchor="middle" font-weight="700">Answer card</text><text x="597" y="174" text-anchor="middle">answered · partial · fallback</text>
+    <text x="10" y="20" font-size="9" fill="#5b6470">Draft answer from the model: text with placeholders such as {{E3.b.mean}} and cited evidence ids — never digits.</text>
+  </g>
+</svg>
+<figcaption>Figure 3. Request flow of the Analyst (ADR-005 §3.1). The dashed arrow returns tool results to the model as data envelopes.</figcaption>
+</figure>
+<h3>6.1 Metric registry and read-only tools</h3>
+<ul>
+  <li><b>Closed registry</b> (B-05, shared with the dashboard): e.g. <code>sleep.hours</code>, <code>steps.count</code>, <code>weight.kg</code>, <code>workouts.count</code>, <code>tasks.completion_rate</code>, <code>job_applications.progress_rate</code>, each with kind, unit and <code>min_delta</code>.</li>
+  <li><b>Six tools</b> with strict Pydantic argument models (<code>extra="forbid"</code>, so no <code>user_id</code> can be passed). <code>user_id</code> comes only from the server-built <code>ToolContext</code>.</li>
+  <li><b>Fixed SQL only</b>: module-level constant queries chosen by enum; values bound with <code>?</code>; a static test bans string-formatted SQL in <code>app/analytics/</code>.</li>
+  <li><b>Hardened read-only connection</b>: <code>PRAGMA query_only</code>, a deny-by-default authorizer, a 2 s statement budget, row caps, and 8 KB result trimming.</li>
+</ul>
+<h3>6.2 Evidence ledger and placeholder rendering</h3>
+<p>Each successful tool call becomes an evidence item (<code>E1</code>…<code>E8</code>) with normalized arguments and a SHA-256 of its result. The model writes prose such as "Average sleep was {{E3.b.mean}} in the second half" and cites <code>E3</code>. The backend replaces placeholders with formatted values (hours to 1 dp, steps with separators, signed deltas, DD.MM.YYYY dates), appends a coverage line ("Based on N documented days of M") and, for relationships, the caveat "Association only; this does not show cause." Text stored by the user (<code>untrusted_text</code>) can never be addressed by a placeholder.</p>
+<h3>6.3 Deterministic validation (V1–V14)</h3>
+<table>
+  <tr><th style="width:9%">Rule</th><th style="width:30%">Requirement</th><th>Check (default thresholds)</th></tr>
+  <tr><td>V1–V2</td><td>Well-formed, supported</td><td>Strict schema; every finding cites existing evidence; every placeholder resolves to an allowed leaf of cited evidence.</td></tr>
+  <tr><td>V3</td><td>No free numbers</td><td>No digit or English number word outside placeholders.</td></tr>
+  <tr><td>V4–V5</td><td>Data exists, enough of it</td><td>Value ≥ 3 observations; trend ≥ 7 points over ≥ 14 days at ≥ 50 % coverage; correlation ≥ 10 pairs; groups ≥ 5 days.</td></tr>
+  <tr><td>V6–V7</td><td>Missing days, comparable periods</td><td>Coverage line always shown; absolute words and "skipped/missed" claims rejected when coverage &lt; 1; comparisons need ≥ 3 documented days and coverage ≥ 0.4 per period.</td></tr>
+  <tr><td>V8–V9</td><td>Values and direction correct</td><td>Derived fields recomputed (tolerance 1e-9); declared direction must match the backend sign; below <code>min_delta</code> it must be "no clear change".</td></tr>
+  <tr><td>V10</td><td>No causation</td><td>Rejects causal and predictive language ("because", "leads to", "improves", "will", …).</td></tr>
+  <tr><td>V11–V14</td><td>Consistency and safety</td><td>Finding kind matches tool; no URLs or markup; status consistent; charts only from compatible evidence.</td></tr>
+</table>
+<p>If validation fails, the model gets <b>one</b> repair turn containing only error codes. If it still fails, invalid findings are dropped (status becomes <i>partial</i>) or, if none remain, the Owner's fallback is shown: <i>"The available records do not provide sufficient reliable information to analyze {topic} for the selected period. You can add relevant records or expand the date range and try again."</i> Unvalidated model text is never displayed.</p>
+<h3>6.4 OpenAI integration</h3>
+<p>Designed (B-15): Responses API with function calling via an injected <code>ModelClient</code> port, <code>store=false</code>, 30 s per call and 75 s per question, a per-question token budget (default 40,000) and an hourly cap (default 20, one in flight), privacy-safe logging (never the question, results or output). Tests replace the client with scripted models. <span class="tag t-no">NOT RUN</span> No live OpenAI call has been made; live evaluation requires the Owner's O-9 approval.</p>
+
+<!-- ============ 7 ============ -->
+<h2 class="pb">7. AI-assisted software-engineering methodology</h2>
+<h3>7.1 Roles</h3>
+<table>
+  <tr><th style="width:18%">Role</th><th>Responsibility</th><th style="width:28%">Constraint</th></tr>
+  <tr><td><b>Owner</b> (human)</td><td>Product direction, approvals, corrections, external setup.</td><td>Approval never inferred from silence.</td></tr>
+  <tr><td><b>Architect</b> (Claude agent)</td><td>One bounded design decision at a time with options and tradeoffs.</td><td>Read-only tools (Read, Grep, Glob).</td></tr>
+  <tr><td><b>Coder</b> (Claude agent)</td><td>Implements one approved task with focused tests.</td><td>Never self-certifies.</td></tr>
+  <tr><td><b>Verifier</b> (Claude agent)</td><td>Independently runs tests, black-box probes and Playwright at 1440×900 and 390×844; reports PASS / FAIL.</td><td>Read-only on the code; cannot fix what it finds.</td></tr>
+  <tr><td><b>Integration Lead</b> (main Claude session)</td><td>Orchestrates tasks, owns planning documents, sole writer to <code>main</code>, runs the integration Verifier after merges.</td><td>Material changes go back to the Owner.</td></tr>
+</table>
+<p>The build-time Claude agents are distinct from the <i>runtime</i> OpenAI agent inside the product.</p>
+<h3>7.2 Workflow</h3>
+<figure>
+<svg width="680" height="95" viewBox="0 0 680 95" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f5f8b"/></marker></defs>
+  <g font-size="10">
+    <rect x="5" y="25" width="95" height="40" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="52" y="49" text-anchor="middle">Architect proposes</text>
+    <line x1="100" y1="45" x2="120" y2="45" stroke="#1f5f8b" marker-end="url(#a4)"/>
+    <rect x="120" y="25" width="90" height="40" rx="5" fill="#fff" stroke="#5b6470"/><text x="165" y="49" text-anchor="middle">Owner approves</text>
+    <line x1="210" y1="45" x2="230" y2="45" stroke="#1f5f8b" marker-end="url(#a4)"/>
+    <rect x="230" y="25" width="85" height="40" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="272" y="49" text-anchor="middle">Coder builds</text>
+    <line x1="315" y1="45" x2="335" y2="45" stroke="#1f5f8b" marker-end="url(#a4)"/>
+    <rect x="335" y="25" width="95" height="40" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="382" y="49" text-anchor="middle">Verifier checks</text>
+    <path d="M382 65 C 382 90, 272 90, 272 67" fill="none" stroke="#a3282c" marker-end="url(#a4)"/><text x="327" y="92" text-anchor="middle" fill="#a3282c" font-size="9">FAIL → fix → recheck</text>
+    <line x1="430" y1="45" x2="450" y2="45" stroke="#1f5f8b" marker-end="url(#a4)"/>
+    <rect x="450" y="25" width="105" height="40" rx="5" fill="#fff" stroke="#5b6470"/><text x="502" y="42" text-anchor="middle">PASS → plan, log,</text><text x="502" y="55" text-anchor="middle">secret scan</text>
+    <line x1="555" y1="45" x2="575" y2="45" stroke="#1f5f8b" marker-end="url(#a4)"/>
+    <rect x="575" y="25" width="100" height="40" rx="5" fill="#eef4f9" stroke="#1f5f8b"/><text x="625" y="42" text-anchor="middle">Commit + push</text><text x="625" y="55" text-anchor="middle">one per task</text>
+  </g>
+</svg>
+<figcaption>Figure 4. Phase B loop. A task is <i>Done</i> only with recorded passing evidence.</figcaption>
+</figure>
+<p><b>Source-of-truth discipline:</b> <code>PROJECT_PLAN.md</code> holds task state and acceptance criteria; <code>DEVELOPMENT_LOG.md</code> holds prompts, decisions, defects and evidence; <code>RESUME_CHECKPOINT.md</code> lets a new session resume without conversational memory (used at LOG-010 and LOG-017).</p>
+<h3>7.3 Parallel and delegated development</h3>
+<p>From LOG-019 the work ran in three isolated checkouts with a written protocol (<code>parallel-work-and-metrics-contract.md</code>):</p>
+<table>
+  <tr><th>Workstream</th><th>Scope</th><th>Branch</th><th>Coordination rule</th></tr>
+  <tr><td>Main / Integration Lead</td><td>B-14 → B-05 → B-07 → integration</td><td><code>main</code></td><td>Only writer to <code>main</code> and planning docs</td></tr>
+  <tr><td>Analytics worker</td><td>B-13 → B-15</td><td><code>feature/analytics-agent</code></td><td>Builds T1–T5 against a <b>frozen B-05 metrics contract</b> through <code>ports.py</code> and an in-memory fake, until B-05 merges</td></tr>
+  <tr><td>Submission worker</td><td>Report, README draft, audit, release, video plan</td><td><code>feature/submission</code></td><td>Documentation only; uses committed evidence only</td></tr>
+</table>
+<p>File ownership is exclusive per workstream. The frozen interface let analytics proceed in parallel without waiting for the registry implementation; its cost is that tools are verified against a fake until integration (§15).</p>
+
+<!-- ============ 8 ============ -->
+<h2>8. Significant prompts, iterations, discoveries and decisions</h2>
+<table>
+  <tr><th style="width:12%">Record</th><th style="width:38%">Prompt or decision (quoted where recorded verbatim)</th><th>Effect</th></tr>
+  <tr><td>LOG-002</td><td>"Start Phase A with the Architect agent only. Propose the first architecture decision with alternatives and tradeoffs. Wait for my explicit approval before proceeding."</td><td>Established the one-decision-at-a-time design loop.</td></tr>
+  <tr><td>LOG-005</td><td>Owner corrected the Architect's framing of LLM calorie re-estimation as an exception to "AI never overwrites".</td><td>Append-only <code>meal_calorie_estimates</code> + <code>daily_calories</code> view, before any code existed.</td></tr>
+  <tr><td>LOG-007</td><td>"approve A-05, start Phase B"</td><td>GATE-A passed.</td></tr>
+  <tr><td>LOG-011</td><td>Data-integrity directive: "Data Integrity and Deletion Policy — Highest Priority …"</td><td>F-01 inserted before sign-in; ADR-004.</td></tr>
+  <tr><td>LOG-013</td><td>Owner required the project to remain company-neutral and asked that a company reference be removed from the log while keeping the history intact.</td><td>Neutrality requirement; drives the fresh public repository (§13).</td></tr>
+  <tr><td>LOG-015</td><td>Product direction change to personal analytics (verbatim file).</td><td>ADR-005; planning-only session.</td></tr>
+  <tr><td>LOG-016</td><td>Main Claude checked an Architect claim (that commit metadata contained the Owner's email) against git history and found it false.</td><td>Rationale for the public-repo approach rewritten on facts.</td></tr>
+  <tr><td>LOG-017</td><td>Owner approved O-0…O-8, O-10…O-12; live paid calls (O-9) still need approval.</td><td>Autonomous execution within the approved architecture.</td></tr>
+  <tr><td>LOG-019</td><td>"B-06 … is now Deferred / Out of MVP. Manual data entry from B-04 is sufficient for this submission."</td><td>Runtime AI concentrated on analytics; 30-day fixture; parallel workstreams.</td></tr>
+  <tr><td>Worker notes D-3</td><td>Analytics worker flagged that weight logged ~2×/week can never meet the generic 50 % trend-coverage floor, and applied the weight-specific V5 rule instead.</td><td>Recorded as an interpretation for Owner approval; no threshold changed silently.</td></tr>
+</table>
+
+<!-- ============ 9 ============ -->
+<h2 class="pb">9. Representative failures detected by independent verification</h2>
+<p>The Coder's own test suite was green before every one of these rounds. Each defect was found by the independent Verifier (or by the Owner, for design errors), fixed, and rechecked.</p>
+<table>
+  <tr><th style="width:11%">Task / round</th><th style="width:33%">Defect</th><th style="width:25%">Root cause</th><th>Correction</th></tr>
+  <tr><td>B-01 R1</td><td>Quick-tunnel start could not set the public URL without a restart; a test login could pass its localhost guard while publicly exposed (High).</td><td>Start order assumed the URL was known in advance.</td><td>Tunnel-first start; public URL taken from the tunnel.</td></tr>
+  <tr><td>B-01 R1</td><td>Configuration errors echoed secret values; the example placeholder secret validated.</td><td>Default pydantic error messages; length-only check.</td><td>Value-free <code>SettingsError</code>; placeholder and low-entropy secrets rejected.</td></tr>
+  <tr><td>B-03 R1</td><td>Canonical-key separator <code>|</code> allowed collisions; migration COMMIT inside a file broke atomicity.</td><td>Separator present in user text; runner trusted file content.</td><td><code>\x1f</code> separator; runner rejects transaction statements.</td></tr>
+  <tr><td>F-01 R1–R5</td><td>Five consecutive bypasses of the data-preservation guards, e.g. <code>;COMMIT;</code> inside a migration, <code>UPDATE … SET rowid=77</code>, a <code>WHEN 0</code> guard, a double-quoted WHEN clause read by SQLite as a string constant, a migration inserting standing deletion grants.</td><td>Guards were verified by <b>matching trigger text</b>, which an adversary can mimic.</td><td>SQLite authorizers (no DDL from the app, no transaction control in migrations), exact guard templates, invariants before COMMIT and at startup. R6 PASS: 28 earlier repros rejected.</td></tr>
+  <tr><td>B-02 R1</td><td>Test login trusted the client-supplied <code>Host</code> header: a remote request with <code>Host: localhost</code> got a session.</td><td>"Local" decided from a header, not the peer.</td><td>Also require a loopback peer address; more proxy headers refused. Five new tests failed on the pre-fix code.</td></tr>
+  <tr><td>B-02 R2</td><td>A client disconnect mid-form let CSRF middleware pass a truncated body as complete (raw-socket repro).</td><td>Body replay did not track completeness.</td><td>Partial bodies dropped; R3 PASS.</td></tr>
+  <tr><td>B-04 R1</td><td>Every real-browser add and edit returned 403.</td><td>Jinja macros imported without context left the CSRF token empty; the 607 tests read the token from a meta tag, not from the form.</td><td><code>with context</code>; new test submits each rendered form's own fields (fails 13/13 when the fix is reverted).</td></tr>
+  <tr><td>B-13 R1</td><td>Sign-inverted direction words outside directional findings; <code>value</code> findings bypassed V5–V7 through delta leaves; limitations carried unsupported values.</td><td>Validator checked direction only per finding kind.</td><td>D-12: delta leaves gated to matching kinds; limitations restricted to counts, dates and coverage.</td></tr>
+  <tr><td>B-13 R2</td><td>"You lost 1.5 kg" accepted on a weight <i>gain</i> (synonym and inflection gap); direction words with no change evidence.</td><td>Word list instead of stems; no link between words and evidence.</td><td>D-13: signed delta rendering, stem lexicon, direction words must be backed by a matching sign-bearing placeholder. R3 PASS.</td></tr>
+</table>
+<p class="small">Full list (30+ items, including non-blocking findings): <code>docs/submission/evidence-index.md</code> §2 and <code>docs/analytics/worker-notes.md</code> §7.</p>
+<p><b>Pattern.</b> The most valuable findings were not crashes but <i>false confidence</i>: guards that looked present, tokens that looked valid, words that looked supported. Independent, adversarial verification exposed each of them; the Coder's own green suite did not.</p>
+
+<!-- ============ 10 ============ -->
+<h2>10. Testing strategy</h2>
+<table>
+  <tr><th style="width:18%">Layer</th><th>What it covers</th><th style="width:22%">Status</th></tr>
+  <tr><td>Unit</td><td>Config validation, canonical keys, URL/SSRF rules, record dates (incl. Hebrew and DD.MM.YYYY), analytics schemas, ledger, renderer, charts, policy, validator rules and boundaries.</td><td><span class="tag t-ok">TESTED</span></td></tr>
+  <tr><td>Integration (DB)</td><td>PK/FK/UNIQUE/CHECK, migrations and real multi-process concurrency, data preservation, user isolation, soft delete lifecycle, demo/personal exclusivity, fixture checksum and import.</td><td><span class="tag t-ok">TESTED</span></td></tr>
+  <tr><td>Security</td><td>ID-token, session and CSRF probes; loopback-only test login; proxy-header refusal in Demo Mode; static tests for raw connections and string-built SQL; read-only connection denies writes, PRAGMA, ATTACH, VACUUM.</td><td><span class="tag t-ok">TESTED</span></td></tr>
+  <tr><td>Browser</td><td>Playwright MCP by the Verifier at 1440×900 and 390×844: sign-in, tabs, add, duplicate, edit, delete, restore, permanent delete, history windows, task colours, keyboard path, mobile bar, overflow; Demo entry and reset.</td><td><span class="tag t-ok">TESTED</span> (B-04, B-14). No committed E2E suite yet (B-10).</td></tr>
+  <tr><td>Scripted-model</td><td>Agent loop with scripted tool-call sequences, limits, errors, no-key state.</td><td><span class="tag t-ok">TESTED</span> (B-15, scripted model)</td></tr>
+  <tr><td>Adversarial</td><td>Wrong numbers, invented evidence, causal language, undocumented-day claims, bad chart data, prompt injection in record text.</td><td><span class="tag t-ok">TESTED on branch</span> at validator level (B-13); end-to-end with B-15</td></tr>
+  <tr><td>Golden (offline)</td><td>About 20 questions over the fixture with expected values from an independent reference calculator; pass bar 100 %.</td><td><span class="tag t-un">PENDING</span> (needs B-05 on main)</td></tr>
+  <tr><td>Live evaluation</td><td>Status accuracy, evidence recall, repair and degrade rates, latency, tokens.</td><td><span class="tag t-no">NOT RUN</span> (requires O-9)</td></tr>
+</table>
+
+<!-- ============ 11 ============ -->
+<h2 class="pb">11. Actual verification results</h2>
+<table>
+  <tr><th style="width:17%">Checkpoint</th><th style="width:15%">Commit</th><th style="width:15%">Verifier rounds</th><th>Recorded result</th></tr>
+  <tr><td>B-01 scaffold, B-03 schema</td><td><code>42c21af</code></td><td>B-01 FAIL → PASS → PASS; B-03 FAIL → PASS</td><td>75 passed; ruff and mypy --strict clean.</td></tr>
+  <tr><td>F-01 safeguards</td><td><code>42c21af</code></td><td>FAIL ×5 → PASS</td><td>326 passed in 5/5 runs (R6).</td></tr>
+  <tr><td>B-02 sign-in</td><td><code>e1f1984</code></td><td>FAIL → PASS → PASS</td><td>380 passed (3 runs); 61 ID-token probes, 52 session/CSRF probes, 61 data-preservation probes incl. 6 processes × 4 threads.</td></tr>
+  <tr><td>B-04 data operations</td><td><code>dc0cfa8</code></td><td>FAIL → PASS</td><td>690 passed; Playwright both viewports; 12 same-key creates → 1 × 303 and 11 × 409.</td></tr>
+  <tr><td>B-14 Demo Mode</td><td><code>f06e00d</code></td><td>PASS</td><td>853 passed, 1 skipped (×3); real-uvicorn isolation probes (personal DB bytes unchanged, 403 for 8 proxy headers, 0 network connects without a key); Playwright both viewports.</td></tr>
+  <tr><td>B-13 analytics core</td><td><code>ee976b4</code> (branch)</td><td>FAIL → FAIL → PASS</td><td>1350 passed with <code>PYTHONUTF8=1</code>; mypy strict clean (80 files); decoy-user isolation; injection strings; read-only denial with unchanged DB hash. Golden tests pending.</td></tr>
+  <tr><td>Clean clone, Windows, Python 3.11</td><td><code>f06e00d</code></td><td>Submission session (not a Verifier)</td><td id="cleanclone">pip install, ruff and mypy --strict (58 files) clean. pytest <b>as cloned: 95 failed, 753 passed, 2 skipped, 4 errors</b> — the fixture was checked out with CRLF line endings, its SHA-256 no longer matched, and Demo Mode refused to start (W-1). With an LF checkout: 850 passed, 2 failed, 2 skipped; with <code>PYTHONUTF8=1</code>: 851 passed, 1 failed (W-2, W-3).</td></tr>
+</table>
+<h3>Windows clean-clone findings (submission session, 18 Oct)</h3>
+<p>This was the first run of the suite on Windows and on Python 3.11 recorded in the project. It found three issues that the Linux Verifier runs could not show:</p>
+<table>
+  <tr><th style="width:7%">ID</th><th style="width:43%">Finding</th><th>Root cause and proposed fix (main workstream)</th></tr>
+  <tr><td>W-1</td><td><b>Blocking for reviewers:</b> on a default Git for Windows clone (<code>core.autocrlf=true</code>) Demo Mode refuses to start with "Demo fixture checksum mismatch"; 94 demo tests fail or error.</td><td>The checksum is computed over LF bytes; Git converts the JSON to CRLF on checkout. Fix: a <code>.gitattributes</code> entry such as <code>demo/* -text</code> (or <code>eol=lf</code>), then re-verify on Windows.</td></tr>
+  <tr><td>W-2</td><td><code>test_soft_delete_migration_preserves_seeded_data</code> fails under the default Windows locale.</td><td><code>write_text()</code> without <code>encoding="utf-8"</code> (also recorded by the analytics worker). Fix the test's encoding.</td></tr>
+  <tr><td>W-3</td><td><code>test_cleanup_deletes_only_marked_working_copies</code> fails: creating a symlink needs a Windows privilege (WinError 1314).</td><td>Environment limitation of the test, not of the product. Skip that case on Windows when symlinks are unavailable.</td></tr>
+</table>
+<div class="box warn"><b>Not run anywhere so far:</b> live Google sign-in, live OpenAI calls, real Cloudflare tunnel headers, screen reader, contrast measurement, live-network SSRF. Windows PowerShell scripts (<code>start.ps1</code>, <code>stop.ps1</code>) have not been executed by any Verifier.</div>
+
+<!-- ============ 12 ============ -->
+<h2>12. Synthetic dataset design and analytical evaluation</h2>
+<p>The demo fixture <code>demo/synthetic_v1.json</code> is generated by a seeded, reproducible script (<code>scripts/build_demo_fixture.py --check</code>) and locked by SHA-256. Dates are stored as day offsets (−29…0, tasks to +14) and shifted at import so the data always ends today. It describes one entirely fictional person.</p>
+<table>
+  <tr><th>Domain</th><th>Rows</th><th>Domain</th><th>Rows</th><th>Domain</th><th>Rows</th></tr>
+  <tr><td>Meals</td><td>70</td><td>Sleep</td><td>27</td><td>Steps</td><td>27</td></tr>
+  <tr><td>Tasks</td><td>89</td><td>Workouts</td><td>15</td><td>Articles</td><td>12</td></tr>
+  <tr><td>Series episodes</td><td>10</td><td>Job applications</td><td>9</td><td>Weight</td><td>8</td></tr>
+  <tr><td>Podcasts</td><td>8</td><td>Movies</td><td>2</td><td colspan="2">About 10 % of days missing per domain; never encoded as zero</td></tr>
+</table>
+<p class="small">Row counts read from the committed fixture by the submission session.</p>
+<h3>Patterns built in, and cases that must fail safely</h3>
+<table>
+  <tr><th style="width:50%">Should be found (asserted by <code>tests/support/reference.py</code>)</th><th>Must yield partial / insufficient</th></tr>
+  <tr><td><ul>
+    <li>Friend meetings twice weekly in weeks 1–2, none recorded in weeks 3–4 (task days stay documented)</li>
+    <li>Interview tasks per week strictly increasing, consistent with application statuses</li>
+    <li>Workouts and family meetings about 3–4 per week</li>
+    <li>Steps higher on aerobic-workout days (positive association)</li>
+    <li>A "no clear change" control (|r| &lt; 0.3 or flat weight)</li>
+    <li>Sleep: first 15 vs last 15 days differ above <code>min_delta</code></li>
+  </ul></td><td><ul>
+    <li>Untracked domain (mood, heart rate)</li>
+    <li>Movie trend (only 2 movies)</li>
+    <li>A specific undocumented date</li>
+    <li>Weight trend over the last week (too few points / span)</li>
+    <li>A comparison where one period lacks coverage (V7)</li>
+  </ul></td></tr>
+</table>
+<p>The reference calculator is independent of the production metric code, so golden tests compare two implementations rather than one implementation with itself. <b>Dataset approval:</b> the fixture carries <code>"approved_by_owner": false</code> until the Owner reviews all invented names (O-8).</p>
+
+<!-- ============ 13 ============ -->
+<h2 class="pb">13. Privacy, security, reproducibility and deployment</h2>
+<h3>Threats and controls</h3>
+<table>
+  <tr><th style="width:24%">Threat</th><th>Control</th></tr>
+  <tr><td>Prompt injection via stored text</td><td>Tools are read-only and user-scoped; <code>untrusted_text</code> is never addressable; the model cannot write digits, URLs or markup into an answer. Injection strings exist in test fixtures only.</td></tr>
+  <tr><td>Cross-user leakage</td><td>Every query binds <code>user_id</code> from the session; tool models forbid extra fields; decoy-user isolation tests.</td></tr>
+  <tr><td>SQL misuse</td><td>No model-generated SQL; static tests; read-only authorizer; 2 s budget.</td></tr>
+  <tr><td>Cost abuse</td><td>Per-question token budget, call and turn caps, hourly cap, one in flight; reviewer uses own key with a budget limit.</td></tr>
+  <tr><td>Demo exposure</td><td>Localhost-only Demo Mode, 403 for proxy/tunnel headers, refuses tunnel URLs.</td></tr>
+  <tr><td>Secret and PII leakage</td><td>Value-free config errors; <code>.gitignore</code> for env files, databases, documents, media, logs and traces; scan before each commit.</td></tr>
+</table>
+<h3>Repository audit (submission session, 18 Oct)</h3>
+<p>Tree and full history of 9 commits scanned (<code>docs/submission/security-pii-audit-report.md</code>). <b>No live credential, personal email, real record, CV, database, log or screenshot was found.</b> Two history-level items prevent publishing the private history as is: a company name in the first commit (removed from the files later at the Owner's request), and private session links in every commit message. The public repository will therefore be a <b>fresh single-commit snapshot</b> of a verified release (<code>public-release-procedure.md</code>); the private history is preserved unchanged.</p>
+<h3>Reproducibility and deployment</h3>
+<ul>
+  <li>Clean clone → venv → <code>pip install -e ".[dev]"</code> → <code>scripts\start.ps1 -Demo</code>; no credentials required.</li>
+  <li>Fixture checksum and generator <code>--check</code> make the demo data reproducible; the working copy is rebuilt on every start or reset.</li>
+  <li>The app is a local process; it does not need to stay hosted. After a demo the server and any tunnel are stopped and the API key is revoked.</li>
+</ul>
+
+<!-- ============ 14 ============ -->
+<h2>14. Critical reflection, tradeoffs, limitations and future work</h2>
+<h3>What worked</h3>
+<ul>
+  <li><b>Independent verification paid for itself.</b> F-01 needed six rounds; each FAIL exposed a bypass that a self-reviewed green suite would have shipped.</li>
+  <li><b>Recorded human gates</b> caught a design misframing (LOG-005) before any code and kept scope changes explicit rather than drifting.</li>
+  <li><b>Moving trust from the model to the backend</b> — placeholders instead of numbers, fixed tools instead of SQL — made AI correctness testable with ordinary deterministic tests.</li>
+  <li><b>A frozen contract</b> allowed analytics to progress in parallel with the metric registry.</li>
+</ul>
+<h3>What we would do differently</h3>
+<ul>
+  <li>Test forms through their own rendered fields from the start (B-04 D-1), and verify guards by behavior, not by text (F-01).</li>
+  <li>Run the suite on the reviewer's platform early: the Windows line-ending defect (W-1) was invisible on Linux and would have blocked the reviewer's first step.</li>
+</ul>
+<h3>Tradeoffs accepted</h3>
+<table>
+  <tr><th style="width:35%">Choice</th><th>Cost</th></tr>
+  <tr><td>Single agent + deterministic validator (no RAG, no multi-agent)</td><td>Questions limited to what six tools can express; single-turn only.</td></tr>
+  <tr><td>Heuristic thresholds (V5–V9)</td><td>Not significance tests; may refuse borderline but real effects.</td></tr>
+  <tr><td>English lexical rules (V3, V6, V9, V10)</td><td>Best-effort; idioms and negations can slip through, although rendered numbers always show the true sign.</td></tr>
+  <tr><td>Server-rendered UI without JS</td><td>Simpler and CSP-friendly, but less interactive.</td></tr>
+  <tr><td>Parallel workstreams</td><td>Integration risk concentrated at the end; tools verified against a fake until B-05 merges.</td></tr>
+</table>
+<h3>Known limitations</h3>
+<ul>
+  <li>Single-user local application; offline when the process stops. A copied session cookie stays valid until its 8 h expiry.</li>
+  <li>Demo dates shift with the anchor, so there are no weekday patterns.</li>
+  <li>On Windows, until the line-ending fix lands, a default clone breaks the demo fixture checksum (W-1, §11); two tests depend on the locale or on symlink privileges (W-2, W-3).</li>
+  <li>No real Google sign-in, live OpenAI, tunnel, screen-reader or contrast checks yet.</li>
+</ul>
+<h3>Future improvements</h3>
+<ul>
+  <li>Committed Playwright E2E suite in CI; accessibility audit with measured contrast.</li>
+  <li>Opt-in live evaluation harness with labelled results and cost reporting.</li>
+  <li>Multi-turn analyst conversations with per-turn re-validation; localization of lexical rules.</li>
+  <li>Re-introduce AI free-text intake under the same insert-only, validated-repository guarantees.</li>
+</ul>
+
+<!-- ============ 15 ============ -->
+<h2 class="pb" id="final-status">15. Final implementation status</h2>
+<div class="box">Final state at release. Each row cites the commit and the recorded Verifier result; anything not executed is stated as not run.</div>
+<table id="status-table">
+  <tr><th style="width:26%">Task</th><th style="width:20%">State before integration (18 Oct)</th><th>Final state, commit, verification</th></tr>
+  <tr><td>B-01, B-03, F-01, B-02</td><td>Done</td><td>Done — <code>42c21af</code>, <code>e1f1984</code></td></tr>
+  <tr><td>B-04 data operations</td><td>Done</td><td>Done — <code>dc0cfa8</code></td></tr>
+  <tr><td>B-14 Demo Mode</td><td>Done</td><td>Done — <code>f06e00d</code>; fixture approval (O-8): pending the Owner's review</td></tr>
+  <tr><td>B-05 metric registry</td><td>In progress (main)</td><td>Done — <code>fcc64ba</code>; Verifier PASS round 1</td></tr>
+  <tr><td>B-07 dashboard and charts</td><td>In progress (main)</td><td>Done (functional MVP) — <code>32d849a</code>; integration Verifier FAIL (mobile table overflow) → fixed → PASS</td></tr>
+  <tr><td>B-13 analytics core</td><td>Verifier PASS on branch <code>ee976b4</code>; golden tests pending</td><td>Integrated — <code>32d849a</code>; real tools on real B-05 match the reference calculator; golden set not run</td></tr>
+  <tr><td>B-15 agent and Analyst UI</td><td>In progress (analytics)</td><td>Integrated — <code>32d849a</code>; demo-isolation fix verified (only the demo copy is opened, also after reset); live OpenAI not run</td></tr>
+  <tr><td>Windows fixes W-1…W-3</td><td>Found, not fixed</td><td>W-1 fixed by <code>.gitattributes</code> (in <code>32d849a</code>); W-2 and W-3 fixed in the test suite after the release. Not re-run on Windows</td></tr>
+  <tr><td>B-10 E2E browser suite</td><td>Pending</td><td>Not built as a committed suite; Playwright journeys were executed by the Verifiers (B-04, B-14, integration)</td></tr>
+  <tr><td>Integration Verifier on merged <code>main</code></td><td>Not run</td><td>PASS (round 2) on <code>b6ecca8</code>, released as <code>32d849a</code></td></tr>
+  <tr><td>Final test count</td><td>853 + 1 skipped (main); 1350 (analytics branch)</td><td>About 1,740 tests pass (full suite run several times); ruff and <code>mypy --strict</code> clean</td></tr>
+  <tr><td>Live OpenAI evaluation (O-9)</td><td>Not authorized, not run</td><td>Not run (requires the Owner's approval and key)</td></tr>
+  <tr><td>Public repository</td><td>Not created (needs Owner approval)</td><td>Sanitized snapshot prepared; publication awaits the Owner's approval</td></tr>
+  <tr><td>Demo video</td><td>Storyboard ready; recorded by the Owner</td><td>Recorded by the Owner from the release build</td></tr>
+</table>
+
+<h2>Appendix A. Decision register</h2>
+<table>
+  <tr><th style="width:12%">ID</th><th>Decision</th><th style="width:28%">Approval</th></tr>
+  <tr><td>ADR-001</td><td>Stack, data and auth architecture (A-02, A-03, A-04)</td><td>Owner, 16 Oct 2026</td></tr>
+  <tr><td>ADR-002</td><td>Job and trend agents with Run now (A-04)</td><td>Approved 16 Oct; deferred by ADR-005</td></tr>
+  <tr><td>ADR-003</td><td>Quick tunnel and demo security S1–S12</td><td>Owner, 16 Oct 2026</td></tr>
+  <tr><td>ADR-004</td><td>Data preservation and deletion policy</td><td>Owner directive, 17 Oct 2026</td></tr>
+  <tr><td>ADR-005</td><td>Personal analytics, runtime agent, Evidence Validation, Demo Mode</td><td>Scope 17 Oct; design approved 18 Oct (LOG-017); amended LOG-019</td></tr>
+</table>
+<p class="small">Sources: <code>DEVELOPMENT_LOG.md</code> (LOG-002…LOG-020, decision register), <code>PROJECT_PLAN.md</code>, <code>docs/architecture/</code>, <code>docs/analytics/worker-notes.md</code> on <code>feature/analytics-agent</code>, <code>docs/submission/evidence-index.md</code>, <code>docs/submission/security-pii-audit-report.md</code>.</p>
+</body>
+</html>

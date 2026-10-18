@@ -1,0 +1,76 @@
+{# Inline SVG chart macros (ADR-005 §5). Input: app.analytics.charts.ChartView, built from ledger numbers only.
+   SVG presentation attributes only (no inline style, no script), so a strict CSP works. All text is autoescaped.
+   The "Show data" table sits next to the role="img" figure, not inside it: children of role="img" are
+   presentational, so a table inside would be hidden from assistive technology. #}
+
+{% macro _frame(c) -%}
+<line x1="44" y1="10" x2="44" y2="134" stroke="#8a929e" stroke-width="1"/>
+<line x1="44" y1="134" x2="312" y2="134" stroke="#8a929e" stroke-width="1"/>
+{% for t in c.y_ticks %}
+<text x="40" y="{{ t.position + 3 }}" font-size="8" text-anchor="end" fill="#5b6470">{{ t.label }}</text>
+{% endfor %}
+{%- endmacro %}
+
+{% macro _table(c) -%}
+<details class="chart-data">
+  <summary>Show data<span class="visually-hidden"> for {{ c.title }}</span></summary>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="{{ c.title }} data">
+  <table>
+    <caption class="visually-hidden">{{ c.title }}</caption>
+    <thead><tr>{% for col in c.columns %}<th scope="col">{{ col }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in c.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+{% macro line(c) -%}
+<div class="chart">
+  <figure role="img" aria-label="{{ c.aria_label }}">
+    <svg viewBox="{{ c.view_box }}" width="100%" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true">
+      {{ _frame(c) }}
+      {% for t in c.x_ticks %}
+      <text x="{{ t.position }}" y="152" font-size="8" text-anchor="middle" fill="#5b6470">{{ t.label }}</text>
+      {% endfor %}
+      {% for seg in c.line.segments %}
+      <polyline points="{{ seg }}" fill="none" stroke="#1f5fbf" stroke-width="1.5"/>
+      {% endfor %}
+      {% for x, y in c.line.dots %}
+      <circle cx="{{ x }}" cy="{{ y }}" r="2" fill="#1f5fbf"/>
+      {% endfor %}
+      {% if c.line.trend %}
+      {% set t = c.line.trend %}
+      <line x1="{{ t[0] }}" y1="{{ t[1] }}" x2="{{ t[2] }}" y2="{{ t[3] }}" stroke="#9a6200" stroke-width="1.2" stroke-dasharray="4 3"/>
+      {% endif %}
+    </svg>
+    <figcaption>{{ c.title }} <span class="muted">· {{ c.y_label }}</span></figcaption>
+  </figure>
+  {{ _table(c) }}
+</div>
+{%- endmacro %}
+
+{% macro bar(c) -%}
+<div class="chart">
+  <figure role="img" aria-label="{{ c.aria_label }}">
+    <svg viewBox="{{ c.view_box }}" width="100%" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true">
+      {{ _frame(c) }}
+      {% for b in c.bars %}
+      <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.width }}" height="{{ b.height }}" fill="#1f5fbf"/>
+      <text x="{{ b.x + b.width / 2 }}" y="{{ b.y - 2 }}" font-size="7" text-anchor="middle" fill="#1b1f24">{{ b.value_label }}</text>
+      <text x="{{ b.x + b.width / 2 }}" y="146" font-size="7" text-anchor="middle" fill="#1b1f24">{{ b.label }}</text>
+      <text x="{{ b.x + b.width / 2 }}" y="156" font-size="6" text-anchor="middle" fill="#5b6470">{{ b.note }}</text>
+      {% endfor %}
+    </svg>
+    <figcaption>{{ c.title }} <span class="muted">· {{ c.y_label }}</span></figcaption>
+  </figure>
+  {{ _table(c) }}
+</div>
+{%- endmacro %}
+
+{% macro comparison(c) -%}{{ bar(c) }}{%- endmacro %}
+
+{% macro chart(c) -%}
+{% if c.type == "line" %}{{ line(c) }}{% elif c.type == "bar" %}{{ bar(c) }}{% else %}{{ comparison(c) }}{% endif %}
+{%- endmacro %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import record_form, calories with context %}
+{% block content %}
+<section class="panel">
+  <h2>{{ title }}</h2>
+  {% if errors %}
+  <div class="error" role="alert">
+    <p><strong>The {{ view.singular }} was not saved.</strong></p>
+    <ul>{% for e in errors %}<li{% if "נתון" in e %} lang="he" dir="rtl"{% endif %}>{{ e }}</li>{% endfor %}</ul>
+    {% if conflict %}
+    <div class="conflict-actions">
+      <form method="post" action="/records/{{ conflict.domain }}/{{ conflict.record_id }}/restore">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Restore the deleted record</button>
+      </form>
+      <a class="button danger-outline" href="/records/{{ conflict.domain }}/{{ conflict.record_id }}/purge">Delete it permanently…</a>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if record and view.domain == "meals" %}
+  <p>Current calories: {{ calories(record) }}
+    <br><small class="muted">Leave the calories field empty to keep the current estimate. Changing the description
+    without a value records the calories as unknown until they are re-estimated.</small></p>
+  {% endif %}
+  {% if record %}
+  {{ record_form(view, "/records/" ~ view.domain ~ "/" ~ record.id ~ "/edit", "edit", values, today, "Save changes") }}
+  {% else %}
+  {{ record_form(view, "/records/" ~ view.domain, "add", values, today, "Save") }}
+  {% endif %}
+  <p><a href="/{{ view.tab }}#{{ view.domain }}">Cancel</a></p>
+</section>
+{% endblock %}

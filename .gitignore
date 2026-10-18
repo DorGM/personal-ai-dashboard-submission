@@ -1,0 +1,63 @@
+# Secrets and local data — never commit
+.env
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test artefacts that may contain screenshots
+tests/e2e/artifacts/
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.log
+venv/
+build/
+dist/
+
+# Personal documents (CVs) in any common format or case
+*.[pP][dD][fF]
+*.[dD][oO][cC]
+*.[dD][oO][cC][xX]
+*.[oO][dD][tT]
+*.[rR][tT][fF]
+[cC][vV]/
+
+# Browser automation output
+.playwright-mcp/
+*.png
+!app/web/static/**/*.png
+.claude/settings.local.json
+
+# Other media and logs that could contain screenshots or personal data
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[wW][eE][bB][pP]
+*.[gG][iI][fF]
+*.[hH][eE][iI][cC]
+*.[mM][pP]4
+*.[wW][eE][bB][mM]
+*.[mM][oO][vV]
+logs/
+# CV or résumé files outside cv/
+[cC][vV].*
+[rR][eE][sS][uU][mM][eE].*
+!app/web/static/**/*.[jJ][pP][gG]
+!app/web/static/**/*.[wW][eE][bB][pP]
+
+# Playwright output
+test-results/
+playwright-report/
+*trace*.zip

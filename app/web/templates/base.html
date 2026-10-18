@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{{ title }} · Personal Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231f5fbf'/%3E%3Cpath d='M4 12V8m4 4V4m4 8V7' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body{% if user %} class="signed-in"{% endif %}>
+  <a class="skip-link" href="#main">Skip to content</a>
+  {% if demo_mode %}
+  <aside class="demo-banner" aria-label="Demo mode">
+    <p>
+      <strong>Demo mode</strong><span class="demo-long"> — synthetic data only. Changes stay in a local working copy and are reset on restart.
+      {% if ai_enabled %}AI questions use your own OpenAI key; charges apply to your account.{% endif %}</span><span class="demo-short"> · synthetic data</span>
+    </p>
+    <a class="button secondary" href="/demo/reset">Reset demo data</a>
+  </aside>
+  {% endif %}
+  <header class="site-header">
+    <h1><a href="/">Personal Dashboard</a></h1>
+    {% if user %}
+    <div class="user-menu">
+      <a href="/deleted"{% if request.url.path == "/deleted" %} aria-current="page"{% endif %}>Recently deleted</a>
+      <form class="signout" method="post" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span class="muted">Signed in as <strong>{{ user.display_name or user.email }}</strong></span>
+        <button type="submit">Sign out</button>
+      </form>
+    </div>
+    {% endif %}
+  </header>
+  {% if user %}
+  <nav class="tabs" aria-label="Sections">
+    <ul>
+      {% for key, label in tabs %}
+      <li><a href="/{{ key }}" class="tab tab-{{ key }}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+  <main id="main" tabindex="-1">
+    {% if flash %}<p class="flash" role="status">{{ flash }}</p>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
