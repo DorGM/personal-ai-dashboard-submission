@@ -1,13 +1,13 @@
 # Redactions and editorial changes in the published records
 
-The development records in this repository are sanitized copies of the private records at private commit `f511f53`. The private history is preserved unchanged. This file lists what was removed or changed, and why. It never repeats a removed value.
+The development records in this repository are sanitized copies of the private records at private commit `90e1f34`. The private history is preserved unchanged. This file lists what was removed or changed, and why. It never repeats a removed value.
 
 ## Removed or replaced
 | Where | What | Marker | Reason |
 |---|---|---|---|
-| `DEVELOPMENT_LOG.md`, LOG-013, quoted owner prompt | One sentence about the intended audience of the project presentation | `[REDACTED: personal context]` | Personal and job-search context, not engineering content |
+| `DEVELOPMENT_LOG.md`, LOG-013, quoted owner prompt | One sentence about the intended audience of the project presentation | `[REDACTED: personal context]` | Personal context, not engineering content |
 | `DEVELOPMENT_LOG.md`, LOG-013 | A company name | `[company name]` | Already redacted in the private log at the owner's request; the project is company-neutral |
-| `docs/submission/prompts/` | Parts of owner messages about scheduling, deadlines, the job search, repository-access questions, and a company name | `[…]` | Personal context or not about the engineering decision; every remaining quote is exact |
+| `docs/submission/prompts/` | Parts of owner messages about personal scheduling, deadlines, repository-access questions, and a company name | `[…]` | Personal context or not about the engineering decision; every remaining quote is exact |
 | Demo video (release asset) | The browser's top bar (tab strip, address bar, bookmarks) | Cropped from 1280×720 to 1280×600 | It showed personal bookmarks, a mail tab title and a company bookmark |
 
 ## Not published

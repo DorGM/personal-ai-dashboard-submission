@@ -6,7 +6,7 @@
 The Architect had proposed a default for each of 13 open decisions. Some of them concerned cost, data ownership and publication, which are decisions an autonomous implementation session should not make. The owner had to approve the design, while keeping the decisions with real-world consequences under human control.
 
 ## Original prompt
-Label: `Verbatim excerpt of a recorded prompt` (the approvals part is recorded in full in `docs/architecture/owner-approvals-2026-10-18.md`)
+Label: `Verbatim excerpt of a recorded prompt` (the approvals part is recorded in full in the private development repository; see [redactions](../redactions.md))
 
 > I approve ADR-005 (O-0), subject to the decisions below.
 > I also approve the following:

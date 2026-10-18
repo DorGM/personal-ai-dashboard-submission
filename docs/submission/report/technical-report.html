@@ -239,7 +239,7 @@
 <table>
   <tr><th style="width:19%">Concern</th><th>Decision and rationale</th><th style="width:14%">Record</th></tr>
   <tr><td>Stack</td><td>Python FastAPI + Jinja/HTMX + SQLite, chosen over TypeScript/React and Next.js/Prisma: smallest dependency budget, no JavaScript build step, one process to start and stop.</td><td>A-02, LOG-003</td></tr>
-  <tr><td>Data model</td><td>17 STRICT tables and a <code>daily_calories</code> view; user-scoped canonical-key UNIQUE constraints; composite foreign keys; append-only calorie estimates (an owner correction, Appendix B #2).</td><td>A-03, B-03</td></tr>
+  <tr><td>Data model</td><td>18 STRICT tables (including the deletion-grants table) and a <code>daily_calories</code> view; user-scoped canonical-key UNIQUE constraints; composite foreign keys; append-only calorie estimates (an owner correction, Appendix B #2).</td><td>A-03, B-03</td></tr>
   <tr><td>Data preservation</td><td>RESTRICT foreign keys; deletes only through a grant-guarded <code>app/deletion.py</code>; REPLACE and UPSERT neutralized by triggers and a SQLite authorizer; immutable identities; migration invariants checked before COMMIT; app connections cannot run DDL.</td><td>ADR-004, F-01</td></tr>
   <tr><td>Soft delete</td><td>Migration 002 adds <code>deleted_at</code>; Recently deleted view, explicit restore, separately confirmed permanent delete.</td><td>O-1, B-04</td></tr>
   <tr><td>Authentication</td><td>Google OIDC (state, nonce, PKCE); allowlist bound to the stable <code>google_sub</code>; signed 8-hour cookie; CSRF middleware; test login only from a loopback peer.</td><td>B-02</td></tr>
@@ -348,7 +348,7 @@
   <li><b>Prompts as contracts.</b> The most effective prompts stated acceptance criteria and prohibitions ("Wait for my explicit approval", "Do not merge B-15 until the isolation fix passes verification") rather than implementation steps.</li>
   <li><b>Human correction of plausible AI framing.</b> The Architect presented AI calorie re-estimation as an acceptable exception to "AI never edits a saved record"; the owner rejected the framing and the design became append-only before any code existed.</li>
   <li><b>Agents checking agents.</b> The main session verified an Architect claim against git history and found it false; Verifiers repeatedly rejected green Coder work.</li>
-  <li><b>Honest status under time pressure.</b> Release requests asked for "exact blockers" and "do not represent unfinished work as complete"; the release notes therefore list what was not run.</li>
+  <li><b>Honest status under time pressure.</b> The release-readiness request asked to "give me the exact blocking defects" and said "Do not represent unfinished functionality as complete."; the release notes therefore list what was not run.</li>
 </ul>
 
 <!-- ================= 6 ================= -->
@@ -376,7 +376,7 @@
   <tr><td>B-13 analytics core (worker branch)</td><td><code>ee976b4</code></td><td>FAIL → FAIL → PASS</td><td>1,350 passed; decoy-user isolation; injection strings; read-only denial with unchanged database hash.</td></tr>
   <tr><td>Integration: B-07, B-13, B-15 on B-05</td><td><code>32d849a</code></td><td>FAIL → PASS</td><td>About 1,740 passed (×2). Real tools on real metrics over the fixture: sleep halves 7.4615 vs 6.5714 h, equal to the reference calculator; untracked domain and non-comparable periods gave the fallback; wrong literal number and "because" rejected. Demo isolation held before and after a reset. Playwright at both viewports.</td></tr>
 </table>
-<div class="box warn"><b>Never run in this project:</b> live OpenAI calls, the golden set, live Google sign-in, real Cloudflare tunnel headers, the Windows PowerShell start and stop scripts, a screen-reader pass and measured contrast. A Windows clean clone on Python 3.11 was run once by the submission worker (Appendix C); its three findings were fixed but not re-run on Windows.</div>
+<div class="box warn"><b>Never run in this project:</b> live OpenAI calls, the golden set, live Google sign-in, real Cloudflare tunnel headers, the Windows PowerShell start and stop scripts, a screen-reader pass, measured contrast and live-network SSRF tests. A Windows clean clone on Python 3.11 was run once by the submission worker (Appendix C); its three findings were fixed but not re-run on Windows.</div>
 <h3 id="s6-3">6.3 Scripted-model tests and the live evaluation plan</h3>
 <table>
   <tr><th style="width:50%">Validated with a scripted model</th><th>Not validated without a live model</th></tr>
@@ -400,19 +400,20 @@
 
 <!-- ================= 7 ================= -->
 <h2 id="s7">7. Defects found by independent verification</h2>
-<p>The Coder's own test suite was green before each of these rounds. Each defect was found by an independent Verifier (or by the owner, for design errors), fixed, and rechecked. The full list of more than 30 findings, including non-blocking ones, is in the <a href="https://github.com/DorGM/personal-ai-dashboard-submission/blob/main/docs/submission/evidence-index.md">evidence index</a> §2.</p>
+<p>Unless the first column says otherwise, each defect was found by an independent Verifier after the Coder's own test suite was green, then fixed and rechecked. The other finders are the owner (design review), the analytics worker's integration gate, and the submission worker's clean-clone run. The full list of more than 30 findings, including non-blocking ones, is in the <a href="https://github.com/DorGM/personal-ai-dashboard-submission/blob/main/docs/submission/evidence-index.md">evidence index</a> §2.</p>
 <table>
   <tr><th style="width:10%">Task, round</th><th style="width:33%">Defect</th><th style="width:24%">Root cause</th><th>Correction</th></tr>
-  <tr><td>A-03 (design)</td><td>AI calorie re-estimation framed as an exception to "AI never edits a saved record".</td><td>Plausible framing of a rule violation.</td><td>Owner correction: append-only estimates and a summing view, before any code.</td></tr>
+  <tr><td>A-03 (design; owner)</td><td>AI calorie re-estimation framed as an exception to "AI never edits a saved record".</td><td>Plausible framing of a rule violation.</td><td>Owner correction: append-only estimates and a summing view, before any code.</td></tr>
   <tr><td>B-01 R1</td><td>A test login could pass its localhost guard while publicly exposed through the tunnel (High); configuration errors echoed secret values.</td><td>Start order assumed the public URL; default error messages.</td><td>Tunnel-first start; value-free settings errors; placeholder secrets rejected.</td></tr>
   <tr><td>F-01 R1–R5</td><td>Five consecutive bypasses of the data-preservation guards: <code>;COMMIT;</code> inside a migration, <code>UPDATE … SET rowid=77</code>, a <code>WHEN 0</code> guard, a double-quoted WHEN clause read by SQLite as a string, standing deletion grants inserted by a migration.</td><td>Guards were verified by <b>matching trigger text</b>, which an adversary can mimic.</td><td>SQLite authorizers, exact guard templates, invariants before COMMIT and at startup. R6 PASS.</td></tr>
+  <tr><td>B-03 R1</td><td>The canonical-key separator <code>|</code> allowed collisions; a COMMIT inside a migration file broke atomicity.</td><td>Separator can occur in user text; the runner trusted file content.</td><td><code>\x1f</code> separator; the runner rejects transaction statements.</td></tr>
   <tr><td>B-02 R1</td><td>Test login trusted the client <code>Host</code> header: a remote request with <code>Host: localhost</code> received a session.</td><td>"Local" decided from a header, not the peer.</td><td>Also require a loopback peer address; five new tests failed on the old code.</td></tr>
   <tr><td>B-02 R2</td><td>A client disconnect mid-form let the CSRF middleware pass a truncated body as complete.</td><td>Body replay did not track completeness.</td><td>Partial bodies dropped; R3 PASS on raw sockets.</td></tr>
   <tr><td>B-04 R1</td><td>Every real-browser add and edit returned 403 while 607 tests passed.</td><td>Jinja macros imported without context left the CSRF token empty; tests read the token from a meta tag.</td><td><code>with context</code>; new test submits each rendered form's own fields (13/13 fail when reverted).</td></tr>
   <tr><td>B-13 R1–R2</td><td>"You lost 1.5 kg" accepted on a weight <i>gain</i>; direction words with no change evidence; value findings bypassing coverage rules.</td><td>Word lists instead of stems; words not linked to evidence.</td><td>Signed delta rendering, stem lexicon, direction words must be backed by a sign-bearing placeholder. R3 PASS.</td></tr>
-  <tr><td>B-15 (worker)</td><td>In Demo Mode the Analyst opened the personal database path.</td><td>Connection factory ignored the mode.</td><td>Mode-aware, fail-closed read-only connection; regression test across a demo reset (Appendix B #9).</td></tr>
+  <tr><td>B-15 (analytics worker's integration gate)</td><td>In Demo Mode the Analyst opened the personal database path.</td><td>Connection factory ignored the mode.</td><td>Mode-aware, fail-closed read-only connection; regression test across a demo reset. The worker's Verifier did not re-verify the fix; the integration Verifier probed isolation independently and passed it (Appendix B #9).</td></tr>
   <tr><td>Integration R1</td><td>Comparison and "Show data" tables overflowed at 390 px.</td><td>Wide tables without scroll regions.</td><td>Scroll regions with keyboard access; R2 PASS on all 12 aggregate pages.</td></tr>
-  <tr><td>Windows clone</td><td>Demo Mode refused to start on a default Windows clone (fixture checksum mismatch).</td><td>Git converted the checksummed JSON to CRLF.</td><td><code>.gitattributes</code> keeps the fixture bytes; not yet re-run on Windows.</td></tr>
+  <tr><td>Windows clone (submission worker, not a Verifier)</td><td>Demo Mode refused to start on a default Windows clone (fixture checksum mismatch).</td><td>Git converted the checksummed JSON to CRLF.</td><td><code>.gitattributes</code> keeps the fixture bytes; not yet re-run on Windows.</td></tr>
 </table>
 <p><b>Pattern.</b> The most valuable findings were not crashes but <i>false confidence</i>: guards that looked present, tokens that looked valid, words that looked supported. Independent and adversarial verification exposed each of them.</p>
 
@@ -433,7 +434,7 @@
   <li>Open <code>http://localhost:8000</code> and choose "Explore demo data". The Analyst shows the no-key message; with a reviewer's own key it runs on the synthetic data.</li>
   <li>Check reproducibility: <code>python scripts/build_demo_fixture.py --check</code> regenerates the fixture and compares bytes; <code>pytest</code> runs the suite.</li>
 </ol>
-<p><b>Demo video</b> (<a href="https://github.com/DorGM/personal-ai-dashboard-submission/releases/download/submission-v1/Personal-AI-Dashboard-Demo.mp4">download</a>): 4 min 42 s, 1280×600 H.264 with the original audio. The browser's top bar was cropped for privacy; nothing else was edited. It shows Demo Mode without an OpenAI key and is not evidence of live AI.</p>
+<p><b>Demo video</b> (<a href="https://github.com/DorGM/personal-ai-dashboard-submission/releases/download/submission-v1/Personal-AI-Dashboard-Demo.mp4">download</a>): 4 min 42 s, Demo Mode without an OpenAI key, so not evidence of live AI. Only the browser's top bar was cropped, for privacy.</p>
 
 <!-- ================= 9 ================= -->
 <h2 id="s9" class="pb">9. Critical reflection and risks</h2>
@@ -470,7 +471,8 @@
   <li>"Steps on aerobic days" is not expressible (no tool filter), and a comparison with zero events in one period falls back; both are open design questions.</li>
   <li>Single-user local app; a copied session cookie stays valid until its 8-hour expiry; rate limits are per process.</li>
   <li>Windows fixes and PowerShell scripts not re-run on Windows; no screen-reader or contrast audit.</li>
-  <li>The synthetic dataset is not yet owner-approved; some invented organization names may resemble real ones.</li>
+  <li>The synthetic dataset is not yet owner-approved; some invented organization names may resemble real ones. Demo dates shift to end today, so the data has no weekday patterns.</li>
+  <li>Open owner decision: the analytics worker applied a weight-specific trend rule (≥ 4 measurements over ≥ 14 days) because weight logged about twice a week can never meet the generic 50% coverage floor (worker note D-3). It is recorded as an interpretation awaiting approval; no threshold was changed silently.</li>
 </ul>
 </div>
 </div>
@@ -493,7 +495,7 @@
   <tr><td>LOG-019</td><td>Defer AI intake; 30-day fixture; parallel workstreams</td><td>Keep intake in MVP; 90-day fixture</td><td>Owner, 18 Oct</td></tr>
   <tr><td>O-12</td><td>Publish a fresh single-commit public repository; keep private history unchanged</td><td>Rewrite and publish the private history</td><td>Owner, 18 Oct</td></tr>
 </table>
-<p class="small">Sources: <code>DEVELOPMENT_LOG.md</code> (LOG-002…LOG-023), <code>PROJECT_PLAN.md</code>, <code>docs/submission/evidence-index.md</code>, <code>docs/architecture/</code>, <code>docs/submission/prompts/</code>. Version 2.0 replaces version 1.0 of this report (kept in the repository history).</p>
+<p class="small">Sources: <code>DEVELOPMENT_LOG.md</code> (LOG-002…LOG-024), <code>PROJECT_PLAN.md</code>, <code>docs/submission/evidence-index.md</code>, <code>docs/architecture/</code>, <code>docs/submission/prompts/</code>. Version 2.0 replaces version 1.0 of this report (kept in the repository history).</p>
 
 <!-- ================= B ================= -->
 <h2 id="sb" class="pb">Appendix B. Claude Code prompts, iterations and engineering decisions</h2>

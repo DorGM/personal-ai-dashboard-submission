@@ -6,7 +6,7 @@
 The owner wanted a second, independent Claude Code thread to build the analytics agent (B-13/B-15) while the main thread finished Demo Mode, the metrics registry (B-05) and the dashboard. Two AI workers editing one repository can easily overwrite each other's work or merge unverified code.
 
 ## Original prompt
-Label: `Verbatim excerpt of a recorded prompt` (the full text is in `docs/architecture/owner-directive-2026-10-18-priorities.md`)
+Label: `Verbatim excerpt of a recorded prompt` (the full text is kept in the private development repository; see [redactions](../redactions.md))
 
 > I intend to start a second independent Claude Code thread for B-13/B-15.
 > You are the integration lead and the only worker authorized to integrate verified changes into main.
@@ -34,7 +34,7 @@ The owner set the boundaries: one integrator, isolated branches, a verifier per 
 - **Contract changes:** four small deviations from the contract, such as no `industry` filter and future tasks excluded from the completion rate, were accepted by the integration lead and sent to the analytics worker.
 - **Merge:** the analytics branch merged cleanly into a local integration branch, and the handoff patches to integration-owned files were applied there.
 - **Integration fix:** FastAPI's wrapped routers made swapping routes impossible, so the router is now injected through `create_app(analyst_router=)` (LOG-022).
-- **Not available here:** the analytics worker's own prompts. Only its committed notes and handoff are in this repository.
+- **Not available here:** the analytics worker's own prompts. Only its committed notes and handoff exist, and they are kept in the private development repository.
 
 ## Key takeaway
 Parallel AI work stayed safe because the coordination rules were written down in the repository (ownership, a frozen interface, one merger) and did not depend on conversation memory. The contract let the analytics worker build against a fake backend and integrate later.

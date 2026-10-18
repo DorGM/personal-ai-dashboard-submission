@@ -6,7 +6,7 @@
 The owner changed the product's purpose: from external job and industry-trend recommendations to analysis of the user's own records. The new core feature was a runtime agent that answers free-form questions about personal data. That agent must not run arbitrary SQL, make up numbers or claim causes, and the change had to be designed and documented without touching code.
 
 ## Original prompt
-Label: `Verbatim excerpt of a recorded prompt` (the message has about 15,300 characters; the full text is in `docs/architecture/owner-directive-2026-10-17-personal-ai-analytics.md`)
+Label: `Verbatim excerpt of a recorded prompt` (the message has about 15,300 characters; the full text is kept in the private development repository; see [redactions](../redactions.md))
 
 > IMPORTANT: This session is for architecture and planning only. Do not invoke the Coder or Verifier, implement features, modify application code, install dependencies, or begin B-04.
 > […]

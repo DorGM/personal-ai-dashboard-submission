@@ -14,7 +14,7 @@ OpenAI key.
 
 | Submission material | Link |
 |---|---|
-| Technical report (PDF, 16 pages) | [`Personal-AI-Dashboard-Technical-Report.pdf`](docs/submission/report/Personal-AI-Dashboard-Technical-Report.pdf) |
+| Technical report (PDF, 17 pages) | [`Personal-AI-Dashboard-Technical-Report.pdf`](docs/submission/report/Personal-AI-Dashboard-Technical-Report.pdf) |
 | Demo video (4 min 42 s, Demo Mode without an OpenAI key) | [`Personal-AI-Dashboard-Demo.mp4`](https://github.com/DorGM/personal-ai-dashboard-submission/releases/download/submission-v1/Personal-AI-Dashboard-Demo.mp4) on release [`submission-v1`](https://github.com/DorGM/personal-ai-dashboard-submission/releases/tag/submission-v1) |
 | Method: Claude Code Architect, Coder and independent Verifier agents | [`CLAUDE.md`](CLAUDE.md), [`.claude/agents/`](.claude/agents/), report §4 |
 | Development record and task state (sanitized) | [`DEVELOPMENT_LOG.md`](DEVELOPMENT_LOG.md), [`PROJECT_PLAN.md`](PROJECT_PLAN.md) |

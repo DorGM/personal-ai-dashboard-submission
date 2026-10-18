@@ -1,6 +1,6 @@
 # Development & Evaluation Log
 
-> **Public copy.** This is a sanitized copy of the private development record at private commit `f511f53` (2026-10-18). Entry IDs, order and wording are unchanged except the redactions listed in [`docs/submission/redactions.md`](docs/submission/redactions.md). Commit SHAs refer to the private development repository; the public repository is a single-commit snapshot of the released code. Files cited here that are not in the public repository stay private: `RESUME_CHECKPOINT.md`, the owner directive and approval records under `docs/architecture/owner-*.md`, `docs/analytics/*` (the analytics worker's notes) and the submission drafts under `docs/submission/` other than the report. Engineering excerpts of the owner's directives are in [Appendix B](docs/submission/prompts/README.md).
+> **Public copy.** This is a sanitized copy of the private development record at private commit `90e1f34` (2026-10-18). Entry IDs, order and wording are unchanged except the redactions listed in [`docs/submission/redactions.md`](docs/submission/redactions.md). Commit SHAs refer to the private development repository; the public repository is a single-commit snapshot of the released code. Files cited here that are not in the public repository stay private: `RESUME_CHECKPOINT.md`, the owner directive and approval records under `docs/architecture/owner-*.md`, `docs/analytics/*` (the analytics worker's notes) and the submission drafts under `docs/submission/` other than the report. Engineering excerpts of the owner's directives are in [Appendix B](docs/submission/prompts/README.md).
 
 Purpose: capture the **actual** Claude Code prompts, tool-assisted changes, design tradeoffs, checks, failures and improvements needed for the project presentation. Never invent transcripts, outputs, benchmarks, screenshots or dates.
 
@@ -270,7 +270,7 @@ Purpose: capture the **actual** Claude Code prompts, tool-assisted changes, desi
   - **Upgrade:** sanitized copies of this log, the plan and the evidence index; a curated prompt appendix (10 interactions, labelled verbatim / excerpt / no original prompt); report v2.0 (restructured, stale statements corrected, explicit AI validation status); README top section.
   - **Video:** the Owner's recording, validated with ffprobe and a full decode, then re-encoded once to crop the browser top bar (the Owner chose "Crop top bar"; it showed personal bookmarks). Uploaded as a release asset, not committed. The original file is unchanged.
 - Human steering: the Owner required approval before publishing private records or external assets, no force-push, and no history rewrite.
-- Evaluation: see PROJECT_PLAN B-12 and the publication addendum.
+- Evaluation: Verifier round 1 FAIL (8 documentation defects), all fixed; Verifier fresh clone 1741 tests, 0 failures; Main Claude fresh clone 1740 passed, 1 skipped, ruff and mypy --strict clean. The Owner created release `submission-v1`; the asset was downloaded anonymously and its SHA-256 matched the reviewed copy. Live OpenAI and the golden set were not run.
 - Evidence: public repository `docs/submission/`; release `submission-v1`.
 
 ## Decision register
